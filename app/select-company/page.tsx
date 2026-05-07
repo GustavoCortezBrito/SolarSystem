@@ -6,6 +6,16 @@ import { motion } from "framer-motion";
 import { Building2, Users, Crown, Shield, Briefcase, ChevronRight, LogOut } from "lucide-react";
 import { getRoleLabel, getRoleColor } from "@/lib/permissions";
 
+interface Company {
+  id: string;
+  name: string;
+  plan: string;
+}
+
+interface Membership {
+  role: string;
+}
+
 export default function SelectCompanyPage() {
   const router = useRouter();
   const [userCompanies, setUserCompanies] = useState<
