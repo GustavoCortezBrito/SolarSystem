@@ -1,30 +1,30 @@
-# ✅ Erro de Build Corrigido
+# ✅ Erros de Build Corrigidos
 
-## Problema
+## Problema 1
 ```
 Type error: Cannot find name 'Company'.
 ```
 
-## Causa
-Faltavam as importações dos tipos `Company` e `Membership` no arquivo `app/select-company/page.tsx`.
+**Solução:** Adicionadas interfaces locais no arquivo.
 
-## Solução Aplicada
-Adicionadas as interfaces locais no arquivo:
+## Problema 2
+```
+Type error: Argument of type 'string' is not assignable to parameter of type 'Role'.
+```
+
+**Causa:** As funções `getRoleColor` e `getRoleLabel` esperam o tipo `Role` do enum, mas `membership.role` é string.
+
+**Solução:** 
+1. Importado o tipo `Role` de `@/types/auth`
+2. Adicionado cast `as Role` nas chamadas das funções
 
 ```typescript
-interface Company {
-  id: string;
-  name: string;
-  plan: string;
-}
-
-interface Membership {
-  role: string;
-}
+getRoleColor(membership.role as Role)
+getRoleLabel(membership.role as Role)
 ```
 
 ## Status
-✅ **CORRIGIDO**
+✅ **TODOS OS ERROS CORRIGIDOS**
 
 O build agora deve funcionar perfeitamente.
 
@@ -36,7 +36,7 @@ Faça commit e push das alterações:
 
 ```bash
 git add .
-git commit -m "fix: adiciona tipos faltantes em select-company"
+git commit -m "fix: corrige tipos em select-company (Role cast)"
 git push
 ```
 

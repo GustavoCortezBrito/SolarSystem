@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Building2, Users, Crown, Shield, Briefcase, ChevronRight, LogOut } from "lucide-react";
 import { getRoleLabel, getRoleColor } from "@/lib/permissions";
+import { Role } from "@/types/auth";
 
 interface Company {
   id: string;
@@ -170,10 +171,10 @@ export default function SelectCompanyPage() {
                       <div className="flex items-center space-x-4 text-sm text-gray-600">
                         {/* Role */}
                         <div className="flex items-center space-x-2">
-                          <span className={`${getRoleColor(membership.role)} px-2 py-1 rounded flex items-center space-x-1`}>
+                          <span className={`${getRoleColor(membership.role as Role)} px-2 py-1 rounded flex items-center space-x-1`}>
                             {getRoleIcon(membership.role)}
                             <span className="font-medium">
-                              {getRoleLabel(membership.role)}
+                              {getRoleLabel(membership.role as Role)}
                             </span>
                           </span>
                         </div>
