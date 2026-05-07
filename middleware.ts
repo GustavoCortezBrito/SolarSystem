@@ -1,37 +1,23 @@
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
+import { withAuth } from "next-auth/middleware";
 
-// Rotas públicas que não precisam de autenticação
-const publicRoutes = ['/', '/login', '/register', '/forgot-password'];
+export default withAuth({
+  pages: {
+    signIn: "/login",
+  },
+});
 
-// Rotas que precisam de autenticação
-const protectedRoutes = ['/board', '/select-company', '/dashboard'];
-
-export function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
-
-  // Verificar se é uma rota protegida
-  const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route));
-  
-  if (isProtectedRoute) {
-    // Em produção, verificar token JWT
-    // Por enquanto, apenas redirecionar para login se não houver userId no localStorage
-    // Nota: middleware não tem acesso ao localStorage, então isso será tratado no cliente
-    return NextResponse.next();
-  }
-
-  return NextResponse.next();
-}
-
+// Proteger rotas que precisam de autenticação
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - api (API routes)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     */
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+    "/board/:path*",
+    "/clients/:path*",
+    "/proposals/:path*",
+    "/settings/:path*",
+    "/team/:path*",
+    "/notifications/:path*",
+    "/batteries/:path*",
+    "/inverters/:path*",
+    "/modules/:path*",
+    "/optimizers/:path*",
   ],
 };
