@@ -34,6 +34,9 @@ export interface Card {
   // Cliente vinculado
   clientId?: string;
   clientName?: string;
+  // Posicionamento no board
+  columnId?: string;
+  order?: number;
   createdAt: string;
   updatedAt: string;
 }

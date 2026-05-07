@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 // GET /api/proposals/[id] - Buscar proposta por ID
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -14,8 +14,9 @@ export async function GET(
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
+    const { id } = await params;
     const proposal = await prisma.proposal.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         company: {
           select: {
@@ -67,7 +68,7 @@ export async function GET(
 // PUT /api/proposals/[id] - Atualizar proposta
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -75,6 +76,7 @@ export async function PUT(
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
+    const { id } = await params;
     const body = await request.json();
     const { client, consumption, system, financial, status } = body;
 
@@ -91,7 +93,7 @@ export async function PUT(
     }
 
     const proposal = await prisma.proposal.update({
-      where: { id: params.id },
+      where: { id },
       data: updateData,
       include: {
         company: {
@@ -156,7 +158,7 @@ export async function PUT(
 // DELETE /api/proposals/[id] - Deletar proposta
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -164,8 +166,9 @@ export async function DELETE(
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
+    const { id } = await params;
     await prisma.proposal.delete({
-      where: { id: params.id },
+      where: { id },
     });
 
     return NextResponse.json({ message: "Proposta deletada com sucesso" });

@@ -103,16 +103,18 @@ async function main() {
   ];
 
   for (const module of modules) {
-    await prisma.module.upsert({
+    const existing = await prisma.module.findFirst({
       where: {
-        manufacturer_model: {
-          manufacturer: module.manufacturer,
-          model: module.model,
-        },
+        manufacturer: module.manufacturer,
+        model: module.model,
       },
-      update: {},
-      create: module,
     });
+    
+    if (!existing) {
+      await prisma.module.create({
+        data: module,
+      });
+    }
   }
   console.log(`✅ ${modules.length} módulos solares criados`);
 
@@ -157,16 +159,18 @@ async function main() {
   ];
 
   for (const inverter of inverters) {
-    await prisma.inverter.upsert({
+    const existing = await prisma.inverter.findFirst({
       where: {
-        manufacturer_model: {
-          manufacturer: inverter.manufacturer,
-          model: inverter.model,
-        },
+        manufacturer: inverter.manufacturer,
+        model: inverter.model,
       },
-      update: {},
-      create: inverter,
     });
+    
+    if (!existing) {
+      await prisma.inverter.create({
+        data: inverter,
+      });
+    }
   }
   console.log(`✅ ${inverters.length} inversores criados`);
 
@@ -199,16 +203,18 @@ async function main() {
   ];
 
   for (const battery of batteries) {
-    await prisma.battery.upsert({
+    const existing = await prisma.battery.findFirst({
       where: {
-        manufacturer_model: {
-          manufacturer: battery.manufacturer,
-          model: battery.model,
-        },
+        manufacturer: battery.manufacturer,
+        model: battery.model,
       },
-      update: {},
-      create: battery,
     });
+    
+    if (!existing) {
+      await prisma.battery.create({
+        data: battery,
+      });
+    }
   }
   console.log(`✅ ${batteries.length} baterias criadas`);
 
@@ -233,16 +239,18 @@ async function main() {
   ];
 
   for (const optimizer of optimizers) {
-    await prisma.optimizer.upsert({
+    const existing = await prisma.optimizer.findFirst({
       where: {
-        manufacturer_model: {
-          manufacturer: optimizer.manufacturer,
-          model: optimizer.model,
-        },
+        manufacturer: optimizer.manufacturer,
+        model: optimizer.model,
       },
-      update: {},
-      create: optimizer,
     });
+    
+    if (!existing) {
+      await prisma.optimizer.create({
+        data: optimizer,
+      });
+    }
   }
   console.log(`✅ ${optimizers.length} otimizadores criados`);
 

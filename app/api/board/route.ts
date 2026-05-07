@@ -113,7 +113,35 @@ export async function GET(request: NextRequest) {
         include: {
           columns: {
             include: {
-              cards: true,
+              cards: {
+                include: {
+                  client: {
+                    select: {
+                      id: true,
+                      name: true,
+                      email: true,
+                      phone: true,
+                      status: true,
+                    },
+                  },
+                  creator: {
+                    select: {
+                      id: true,
+                      name: true,
+                      email: true,
+                    },
+                  },
+                },
+                orderBy: {
+                  order: "asc",
+                },
+              },
+              creator: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
             },
             orderBy: {
               order: "asc",
