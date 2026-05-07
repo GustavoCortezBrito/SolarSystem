@@ -4,9 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Building2, Users, Crown, Shield, Briefcase, ChevronRight, LogOut } from "lucide-react";
-import { getUserCompanies, mockUsers, mockCompanies, mockMemberships } from "@/lib/mockAuthData";
 import { getRoleLabel, getRoleColor } from "@/lib/permissions";
-import type { Company, Membership } from "@/types/auth";
 
 export default function SelectCompanyPage() {
   const router = useRouter();
@@ -18,21 +16,50 @@ export default function SelectCompanyPage() {
   const [newCompanyName, setNewCompanyName] = useState("");
 
   useEffect(() => {
-    // Simular busca de empresas do usuário
-    const userId = localStorage.getItem("userId") || "user-1";
-    
-    // Buscar empresas do usuário
-    const companies = getUserCompanies(userId);
-    const companiesWithMembership = companies.map((company) => {
-      const membership = mockMemberships.find(
-        (m) => m.userId === userId && m.companyId === company.id
-      );
-      return { company, membership: membership! };
-    });
+    const fetchUserCompanies = async () => {
+      const userId = localStorage.getItem("userId");
+      
+      if (!userId) {
+        router.push("/login");
+        return;
+      }
 
-    setUserCompanies(companiesWithMembership);
-    setIsLoading(false);
-  }, []);
+      try {
+        const response = await fetch("/api/companies", {
+          headers: {
+            "x-user-id": userId,
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error("Erro ao buscar empresas");
+        }
+
+        const data = await response.json();
+        
+        // Transformar dados para o formato esperado
+        const companiesWithMembership = data.companies.map((company: any) => ({
+          company: {
+            id: company.id,
+            name: company.name,
+            plan: "FREE", // Temporário - adicionar plano no banco depois
+          },
+          membership: {
+            role: company.role,
+          },
+        }));
+
+        setUserCompanies(companiesWithMembership);
+      } catch (error) {
+        console.error("Erro ao buscar empresas:", error);
+        setUserCompanies([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchUserCompanies();
+  }, [router]);
 
   const handleSelectCompany = (companyId: string) => {
     localStorage.setItem("companyId", companyId);
@@ -140,15 +167,6 @@ export default function SelectCompanyPage() {
                             </span>
                           </span>
                         </div>
-
-                        {/* Membros */}
-                        <div className="flex items-center space-x-1">
-                          <Users className="w-4 h-4" />
-                          <span>
-                            {mockMemberships.filter((m) => m.companyId === company.id).length}{" "}
-                            membros
-                          </span>
-                        </div>
                       </div>
                     </div>
                   </div>
@@ -207,13 +225,43 @@ export default function SelectCompanyPage() {
           >
             <h2 className="text-2xl font-bold text-gray-900 mb-4">Criar Nova Empresa</h2>
             <form
-              onSubmit={(e) => {
+              onSubmit={async (e) => {
                 e.preventDefault();
-                if (newCompanyName.trim()) {
-                  // Simular criação de empresa
-                  alert(`Empresa "${newCompanyName}" criada com sucesso! (Funcionalidade será implementada com banco de dados)`);
+                if (!newCompanyName.trim()) return;
+
+                const userId = localStorage.getItem("userId");
+                if (!userId) {
+                  alert("Erro: Usuário não autenticado");
+                  return;
+                }
+
+                try {
+                  const response = await fetch("/api/companies", {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                      "x-user-id": userId,
+                    },
+                    body: JSON.stringify({
+                      name: newCompanyName.trim(),
+                    }),
+                  });
+
+                  const data = await response.json();
+
+                  if (!response.ok) {
+                    alert(data.error || "Erro ao criar empresa");
+                    return;
+                  }
+
+                  // Sucesso - recarregar a página para mostrar a nova empresa
+                  alert("Empresa criada com sucesso!");
                   setShowCreateModal(false);
                   setNewCompanyName("");
+                  window.location.reload();
+                } catch (error) {
+                  console.error("Erro ao criar empresa:", error);
+                  alert("Erro ao criar empresa. Tente novamente.");
                 }
               }}
               className="space-y-4"

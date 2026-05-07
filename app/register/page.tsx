@@ -45,13 +45,41 @@ export default function RegisterPage() {
 
     setIsLoading(true);
 
-    // Simulação de cadastro (substituir por API real)
-    setTimeout(() => {
-      // Cadastro bem-sucedido
-      localStorage.setItem("userId", "user-new");
-      localStorage.setItem("userEmail", formData.email);
-      router.push("/select-company");
-    }, 1500);
+    try {
+      const response = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          password: formData.password,
+          phone: formData.phone,
+          companyName: formData.companyName,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.error || "Erro ao criar conta");
+        setIsLoading(false);
+        return;
+      }
+
+      // Cadastro bem-sucedido - salvar dados no localStorage
+      localStorage.setItem("userId", data.user.id);
+      localStorage.setItem("userEmail", data.user.email);
+      localStorage.setItem("companyId", data.company.id);
+      
+      // Redirecionar para o board
+      router.push("/board");
+    } catch (err) {
+      console.error("Erro ao registrar:", err);
+      setError("Erro ao criar conta. Tente novamente.");
+      setIsLoading(false);
+    }
   };
 
   return (
