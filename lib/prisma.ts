@@ -3,6 +3,8 @@
  * 
  * Evita múltiplas instâncias do Prisma Client em desenvolvimento (hot reload).
  * Em produção, cria uma única instância.
+ * 
+ * Prisma 7: Configuração via prisma.config.ts
  */
 
 import { PrismaClient } from "@prisma/client";

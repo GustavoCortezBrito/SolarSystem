@@ -412,7 +412,7 @@ interface NewNotification {
   actionUrl?: string;
   actionLabel?: string;
   relatedEntityId?: string;
-  relatedEntityType?: string;
+  relatedEntityType?: Notification["relatedEntityType"];
   fromUserId?: string;
   fromUserName?: string;
 }
@@ -420,7 +420,16 @@ interface NewNotification {
 export function addNotification(n: NewNotification): void {
   const notification: Notification = {
     id: `notif-${Date.now()}-${Math.random().toString(36).slice(2, 5)}`,
-    ...n,
+    type: n.type,
+    title: n.title,
+    message: n.message,
+    userId: n.userId,
+    actionUrl: n.actionUrl,
+    actionLabel: n.actionLabel,
+    relatedEntityId: n.relatedEntityId,
+    relatedEntityType: n.relatedEntityType,
+    fromUserId: n.fromUserId,
+    fromUserName: n.fromUserName,
     read: false,
     createdAt: new Date().toISOString(),
   };
