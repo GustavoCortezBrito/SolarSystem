@@ -1,6 +1,6 @@
 # SolarSystem CRM
 
-> **Status**: ✅ Fase 1 Concluída (100%) | 🎯 Próxima: Backend e Persistência
+> **Status**: 🎯 Fase 2 em Andamento - PostgreSQL + Prisma + NextAuth
 
 Sistema de CRM inspirado no SolarMarket para gestão de processos fotovoltaicos com funcionalidade principal de board estilo Trello.
 
@@ -12,6 +12,110 @@ Sistema de CRM inspirado no SolarMarket para gestão de processos fotovoltaicos 
 - **TailwindCSS** - Framework CSS utility-first
 - **Framer Motion** - Biblioteca de animações para React
 - **Lucide React** - Ícones modernos e customizáveis
+- **PostgreSQL** - Banco de dados relacional 🆕
+- **Prisma** - ORM moderno para TypeScript 🆕
+- **NextAuth.js** - Autenticação completa 🆕
+
+## ⚡ Quick Start
+
+### 1. Instalar Dependências
+```bash
+npm install
+```
+
+### 2. Configurar Banco de Dados (Supabase)
+
+**Veja o guia completo:** [QUICK_START.md](QUICK_START.md)
+
+```bash
+# 1. Criar projeto no Supabase (https://supabase.com)
+# 2. Copiar connection string
+# 3. Gerar secret
+npm run generate-secret
+
+# 4. Configurar .env (veja .env.example)
+# 5. Rodar migrations
+npm run db:generate
+npm run db:migrate
+
+# 6. Visualizar banco
+npm run db:studio
+```
+
+### 3. Rodar Projeto
+```bash
+npm run dev
+```
+
+Acesse: `http://localhost:3000`
+
+## 📚 Documentação
+
+### Setup e Configuração
+- **[QUICK_START.md](QUICK_START.md)** ⚡ - Guia rápido (5 minutos)
+- **[SUPABASE_SETUP.md](SUPABASE_SETUP.md)** 🗄️ - Setup completo do Supabase
+- **[DATABASE_SETUP.md](DATABASE_SETUP.md)** 📊 - Guia de banco de dados
+- **[FASE2_POSTGRESQL_PRISMA.md](FASE2_POSTGRESQL_PRISMA.md)** 🎯 - Fase 2 completa
+
+### Funcionalidades e Desenvolvimento
+- **[FEATURES.md](FEATURES.md)** - Documentação detalhada de funcionalidades
+- **[DEVELOPMENT.md](DEVELOPMENT.md)** - Guia técnico para desenvolvedores
+- **[ARCHITECTURE.md](ARCHITECTURE.md)** - Arquitetura multi-tenant
+- **[ROADMAP.md](ROADMAP.md)** - Planejamento futuro
+
+## 🗄️ Banco de Dados (Fase 2)
+
+## 🗄️ Banco de Dados (Fase 2)
+
+### Schema Prisma (16 Modelos)
+
+**Autenticação:**
+- `User` - Usuários do sistema
+- `Account` - Contas OAuth
+- `Session` - Sessões ativas
+- `VerificationToken` - Tokens de verificação
+
+**Empresas:**
+- `Company` - Empresas/organizações
+- `CompanyMember` - Membros e permissões
+
+**CRM:**
+- `Client` - Clientes (leads, prospects)
+- `ClientActivity` - Histórico de atividades
+- `Proposal` - Propostas comerciais
+
+**Board:**
+- `Board` - Boards Kanban
+- `Column` - Colunas customizáveis
+- `Card` - Cards com vinculação
+
+**Sistema:**
+- `Notification` - Notificações em tempo real
+
+**Catálogos:**
+- `Module`, `Inverter`, `Battery`, `Optimizer`
+
+### Comandos Úteis
+
+```bash
+# Gerar secret para NextAuth
+npm run generate-secret
+
+# Gerar Prisma Client
+npm run db:generate
+
+# Criar migration
+npm run db:migrate
+
+# Aplicar migrations (produção)
+npm run db:migrate:deploy
+
+# Visualizar banco
+npm run db:studio
+
+# Seed (dados iniciais)
+npm run db:seed
+```
 
 ## 🏢 Arquitetura Multi-Tenant
 
@@ -247,13 +351,16 @@ Consulte o **[FEATURES.md](FEATURES.md)** para guia completo de uso.
 
 ## 📝 Próximos Passos
 
-Consulte o **[ROADMAP.md](ROADMAP.md)** para o planejamento completo das próximas 12 fases.
+**Fase 2 (Em Andamento)** 🎯:
+1. ✅ Setup PostgreSQL + Prisma
+2. ✅ Schema completo (16 modelos)
+3. ✅ Configuração Supabase
+4. 🔄 Criar API Routes (CRUD)
+5. 🔄 Implementar NextAuth.js
+6. 🔄 Migrar store.ts (localStorage → API)
+7. 🔄 Seed com dados iniciais
 
-**Fase 2 (Próxima)**:
-1. Implementar persistência de dados (PostgreSQL + Prisma)
-2. Criar API REST com Next.js API Routes
-3. Adicionar autenticação de usuários (NextAuth.js)
-4. Sistema de sincronização em tempo real
+Consulte o **[ROADMAP.md](ROADMAP.md)** para o planejamento completo das próximas 12 fases.
 
 ## 🤝 Contribuindo
 
