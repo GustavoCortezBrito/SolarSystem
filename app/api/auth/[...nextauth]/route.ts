@@ -35,8 +35,6 @@ export const authOptions: NextAuthOptions = {
             throw new Error("Credenciais inválidas");
           }
 
-          console.log("✅ Login bem-sucedido:", user.email);
-
           return {
             id: user.id,
             email: user.email,
@@ -52,7 +50,6 @@ export const authOptions: NextAuthOptions = {
   ],
   session: {
     strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60, // 30 dias
   },
   pages: {
     signIn: "/login",
@@ -64,7 +61,6 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id = user.id;
         token.role = (user as any).role;
-        console.log("✅ JWT criado para:", user.email);
       }
       return token;
     },
@@ -72,7 +68,6 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         session.user.id = token.id as string;
         session.user.role = token.role as string;
-        console.log("✅ Session criada para:", session.user.email);
       }
       return session;
     },

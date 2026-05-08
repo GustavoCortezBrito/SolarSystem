@@ -21,35 +21,23 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      console.log("🔐 Tentando fazer login...");
-      
       const result = await signIn("credentials", {
         email,
         password,
         redirect: false,
       });
 
-      console.log("🔐 Resultado do signIn:", result);
-
       if (result?.error) {
-        console.error("❌ Erro no signIn:", result.error);
         setError("Email ou senha incorretos");
         setIsLoading(false);
         return;
       }
 
-      if (result?.ok) {
-        console.log("✅ Login bem-sucedido!");
-        // Login bem-sucedido - redirecionar para seleção de empresa
-        router.push("/select-company");
-        router.refresh();
-      } else {
-        console.error("❌ Login falhou sem erro específico");
-        setError("Erro ao fazer login. Tente novamente.");
-        setIsLoading(false);
-      }
+      // Login bem-sucedido - redirecionar para seleção de empresa
+      router.push("/select-company");
+      router.refresh();
     } catch (error) {
-      console.error("❌ Erro no login:", error);
+      console.error("Erro no login:", error);
       setError("Erro ao fazer login. Tente novamente.");
       setIsLoading(false);
     }
