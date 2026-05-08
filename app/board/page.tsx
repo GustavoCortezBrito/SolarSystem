@@ -76,8 +76,8 @@ export default function BoardPage() {
               updatedAt: card.updatedAt,
             })),
           })),
-          members: [], // TODO: buscar membros da empresa
-          availableLabels: [],
+          members: data.members || [],
+          availableLabels: data.availableLabels || [],
         };
 
         setBoard(boardData);
@@ -186,6 +186,7 @@ export default function BoardPage() {
   const handleUpdateCard = async (columnId: string, cardId: string, updates: Partial<Card>) => {
     if (!board) return;
     
+    // Atualizar UI otimisticamente
     const newBoard = {
       ...board,
       columns: board.columns.map((col) =>
@@ -203,7 +204,27 @@ export default function BoardPage() {
     };
     setBoard(newBoard);
 
-    // TODO: Chamar API para atualizar card
+    // Chamar API para persistir alterações
+    try {
+      await fetch("/api/board/cards", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cardId,
+          title: updates.title,
+          description: updates.description,
+          tags: updates.labels,
+          clientId: updates.clientId,
+          clientName: updates.clientName,
+          dueDate: updates.dueDate,
+        }),
+      });
+    } catch (error) {
+      console.error("Erro ao atualizar card:", error);
+      alert("Erro ao salvar alterações do card. Tente novamente.");
+      // Reverter mudança em caso de erro
+      setBoard(board);
+    }
   };
 
   const handleDeleteCard = async (columnId: string, cardId: string) => {
@@ -446,6 +467,12 @@ export default function BoardPage() {
               <Link href="/proposals"
                 className="px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
                 Propostas
+              </Link>
+
+              {/* Calculadora */}
+              <Link href="/calculator"
+                className="px-3 py-1.5 text-sm text-primary-600 font-medium hover:bg-primary-50 rounded-lg transition-colors">
+                Calculadora
               </Link>
 
               {/* Cadastros */}

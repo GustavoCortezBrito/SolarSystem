@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { motion } from "framer-motion";
 import {
   ArrowLeft,
@@ -11,14 +12,13 @@ import {
   Lock,
   Save,
   Camera,
+  Loader2,
 } from "lucide-react";
 import Link from "next/link";
-import { mockUsers } from "@/lib/mockAuthData";
 
 export default function ProfilePage() {
   const router = useRouter();
-  const [userId, setUserId] = useState<string>("");
-  const [user, setUser] = useState<any>(null);
+  const { data: session, status } = useSession();
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -28,34 +28,40 @@ export default function ProfilePage() {
     confirmPassword: "",
   });
   const [showPasswordSection, setShowPasswordSection] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
 
   useEffect(() => {
-    const storedUserId = localStorage.getItem("userId");
-    if (!storedUserId) {
+    if (status === "unauthenticated") {
       router.push("/login");
       return;
     }
 
-    setUserId(storedUserId);
-    const foundUser = mockUsers.find((u) => u.id === storedUserId);
-    if (foundUser) {
-      setUser(foundUser);
+    if (session?.user) {
       setFormData({
-        name: foundUser.name,
-        email: foundUser.email,
-        phone: foundUser.phone || "",
+        name: session.user.name || "",
+        email: session.user.email || "",
+        phone: "",
         currentPassword: "",
         newPassword: "",
         confirmPassword: "",
       });
     }
-  }, [router]);
+  }, [session, status, router]);
 
-  if (!user) {
+  if (status === "loading") {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-primary-600 animate-spin" />
+      </div>
+    );
+  }
+
+  if (!session?.user) {
     return null;
   }
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
 
     // Validar senha se estiver tentando mudar
@@ -74,11 +80,40 @@ export default function ProfilePage() {
       }
     }
 
-    // Aqui você salvaria no banco de dados
-    alert("Perfil atualizado com sucesso!");
-    
-    // Atualizar localStorage
-    localStorage.setItem("userName", formData.name);
+    setIsSaving(true);
+    setSaveSuccess(false);
+
+    try {
+      // TODO: Implementar API para atualizar perfil
+      // const response = await fetch("/api/user/profile", {
+      //   method: "PUT",
+      //   headers: { "Content-Type": "application/json" },
+      //   body: JSON.stringify(formData),
+      // });
+      
+      // if (!response.ok) throw new Error("Erro ao atualizar perfil");
+      
+      // Simulação temporária
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
+      
+      if (showPasswordSection) {
+        setShowPasswordSection(false);
+        setFormData({
+          ...formData,
+          currentPassword: "",
+          newPassword: "",
+          confirmPassword: "",
+        });
+      }
+    } catch (error) {
+      console.error("Erro ao salvar perfil:", error);
+      alert("Erro ao salvar perfil. Tente novamente.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -108,7 +143,7 @@ export default function ProfilePage() {
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Foto de Perfil</h2>
             <div className="flex items-center space-x-6">
               <div className="w-24 h-24 rounded-full bg-primary-500 flex items-center justify-center text-white text-3xl font-bold">
-                {user.name.charAt(0).toUpperCase()}
+                {session.user.name?.charAt(0).toUpperCase() || "U"}
               </div>
               <div>
                 <button
@@ -155,8 +190,12 @@ export default function ProfilePage() {
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  disabled
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500 cursor-not-allowed"
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  O email não pode ser alterado
+                </p>
               </div>
 
               <div>
@@ -273,10 +312,29 @@ export default function ProfilePage() {
             </Link>
             <button
               type="submit"
-              className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors flex items-center space-x-2"
+              disabled={isSaving || saveSuccess}
+              className={`px-6 py-2 rounded-lg transition-colors flex items-center space-x-2 ${
+                saveSuccess
+                  ? "bg-green-600 text-white"
+                  : "bg-primary-600 text-white hover:bg-primary-700"
+              } disabled:opacity-50 disabled:cursor-not-allowed`}
             >
-              <Save className="w-5 h-5" />
-              <span>Salvar Alterações</span>
+              {isSaving ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <span>Salvando...</span>
+                </>
+              ) : saveSuccess ? (
+                <>
+                  <Save className="w-5 h-5" />
+                  <span>Salvo!</span>
+                </>
+              ) : (
+                <>
+                  <Save className="w-5 h-5" />
+                  <span>Salvar Alterações</span>
+                </>
+              )}
             </button>
           </div>
         </form>

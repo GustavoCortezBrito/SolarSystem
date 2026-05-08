@@ -28,7 +28,7 @@ export default function Home() {
       icon: TrendingUp,
       title: "Dimensionamento Fotovoltaico",
       description: "Calcule sistemas on-grid, híbridos e zero grid com uma ou múltiplas unidades consumidoras.",
-      href: "#",
+      href: "/calculator",
       color: "bg-blue-500",
     },
     {

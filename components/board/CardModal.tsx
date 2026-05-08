@@ -153,7 +153,10 @@ export function CardModal({ card, board, onClose, onSave, onDelete }: CardModalP
     { value: "high", label: "Alta", color: "text-red-600", bg: "bg-red-100" },
   ];
 
-  const getAssignedMembers = () => board.members.filter((m) => selectedAssignees.includes(m.id));
+  const getAssignedMembers = () => {
+    if (!board.members || board.members.length === 0) return [];
+    return board.members.filter((m) => selectedAssignees.includes(m.id));
+  };
 
   const clientStatusColors: Record<string, string> = {
     LEAD: "bg-gray-100 text-gray-700",
@@ -361,7 +364,7 @@ export function CardModal({ card, board, onClose, onSave, onDelete }: CardModalP
                       className="px-4 py-2 text-sm text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors flex items-center space-x-2">
                       <Tag className="w-4 h-4" /><span>Adicionar tag</span>
                     </button>
-                    {showLabelPicker && (
+                    {showLabelPicker && board.availableLabels && board.availableLabels.length > 0 && (
                       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
                         className="absolute top-full mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 p-3 z-10">
                         <div className="space-y-1">
@@ -372,6 +375,12 @@ export function CardModal({ card, board, onClose, onSave, onDelete }: CardModalP
                             </button>
                           ))}
                         </div>
+                      </motion.div>
+                    )}
+                    {showLabelPicker && (!board.availableLabels || board.availableLabels.length === 0) && (
+                      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
+                        className="absolute top-full mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 p-3 z-10">
+                        <p className="text-sm text-gray-500 text-center">Nenhuma tag disponível</p>
                       </motion.div>
                     )}
                   </div>
@@ -407,19 +416,23 @@ export function CardModal({ card, board, onClose, onSave, onDelete }: CardModalP
                     {showAssigneePicker && (
                       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
                         className="absolute top-full mt-2 w-full bg-white rounded-lg shadow-lg border border-gray-200 p-2 z-10 max-h-64 overflow-y-auto">
-                        {board.members.map((member) => (
-                          <button key={member.id} onClick={() => toggleAssignee(member.id)}
-                            className={`w-full flex items-center space-x-2 p-2 rounded hover:bg-gray-100 transition-colors ${selectedAssignees.includes(member.id) ? "bg-primary-50" : ""}`}>
-                            <div className="w-8 h-8 rounded-full bg-primary-500 flex items-center justify-center text-white text-sm font-medium">
-                              {member.name.charAt(0).toUpperCase()}
-                            </div>
-                            <div className="flex-1 text-left">
-                              <p className="text-sm font-medium text-gray-900">{member.name}</p>
-                              <p className="text-xs text-gray-500">{member.email}</p>
-                            </div>
-                            {selectedAssignees.includes(member.id) && <span className="text-primary-600">✓</span>}
-                          </button>
-                        ))}
+                        {!board.members || board.members.length === 0 ? (
+                          <p className="text-sm text-gray-500 text-center py-4">Nenhum membro disponível</p>
+                        ) : (
+                          board.members.map((member) => (
+                            <button key={member.id} onClick={() => toggleAssignee(member.id)}
+                              className={`w-full flex items-center space-x-2 p-2 rounded hover:bg-gray-100 transition-colors ${selectedAssignees.includes(member.id) ? "bg-primary-50" : ""}`}>
+                              <div className="w-8 h-8 rounded-full bg-primary-500 flex items-center justify-center text-white text-sm font-medium">
+                                {member.name.charAt(0).toUpperCase()}
+                              </div>
+                              <div className="flex-1 text-left">
+                                <p className="text-sm font-medium text-gray-900">{member.name}</p>
+                                <p className="text-xs text-gray-500">{member.email}</p>
+                              </div>
+                              {selectedAssignees.includes(member.id) && <span className="text-primary-600">✓</span>}
+                            </button>
+                          ))
+                        )}
                       </motion.div>
                     )}
                   </div>

@@ -151,7 +151,45 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    return NextResponse.json(board);
+    // Buscar membros da empresa para incluir no board
+    const members = await prisma.companyMember.findMany({
+      where: { companyId },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+    });
+
+    // Tags disponíveis padrão
+    const availableLabels = [
+      "Residencial",
+      "Comercial",
+      "Industrial",
+      "Urgente",
+      "Híbrido",
+      "On-Grid",
+      "Off-Grid",
+      "Aguardando Cliente",
+      "Revisão Técnica",
+    ];
+
+    // Adicionar campos extras ao board
+    const boardWithExtras = {
+      ...board,
+      availableLabels,
+      members: members.map((m) => ({
+        id: m.user.id,
+        name: m.user.name,
+        email: m.user.email,
+      })),
+    };
+
+    return NextResponse.json(boardWithExtras);
   } catch (error) {
     console.error("Erro ao buscar board:", error);
     return NextResponse.json(

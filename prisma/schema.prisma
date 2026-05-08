@@ -34,6 +34,7 @@ model User {
   notifications Notification[]
   cards         Card[]
   columns       Column[]
+  calculations  Calculation[]
 
   @@map("users")
 }
@@ -158,6 +159,7 @@ model Client {
   proposals  Proposal[]
   activities ClientActivity[]
   cards      Card[]
+  calculations Calculation[]
 
   @@index([companyId])
   @@index([status])
@@ -382,4 +384,50 @@ model Optimizer {
   updatedAt DateTime @updatedAt
 
   @@map("optimizers")
+}
+
+// ─── CÁLCULOS SOLARES ─────────────────────────────────────────────────────────
+
+model Calculation {
+  id        String   @id @default(cuid())
+  companyId String
+  clientId  String?
+  
+  // Inputs
+  propertyType       String   // residential, commercial, industrial
+  monthlyConsumption Float    // kWh
+  monthlyBill        Float    // R$
+  tariff             Float    // R$/kWh
+  solarIrradiation   Float    // kWh/m²/dia
+  roofType           String   // ceramic, metallic, concrete, fibrociment
+  panelPowerWp       Int      // Watts
+  systemType         String   // on-grid, off-grid, hybrid
+  hasBattery         Boolean  @default(false)
+  
+  // Resultados
+  systemPowerKWp     Float
+  numberOfPanels     Int
+  inverterPowerKW    Float
+  monthlyGeneration  Float
+  annualGeneration   Float
+  systemCost         Float
+  monthlySavings     Float
+  annualSavings      Float
+  paybackYears       Float
+  roi25Years         Float
+  requiredAreaM2     Float
+  co2AvoidedKgYear   Float
+  treesEquivalent    Int
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  createdBy String
+  creator   User    @relation(fields: [createdBy], references: [id])
+  client    Client? @relation(fields: [clientId], references: [id], onDelete: SetNull)
+
+  @@index([companyId])
+  @@index([clientId])
+  @@index([createdBy])
+  @@map("calculations")
 }
