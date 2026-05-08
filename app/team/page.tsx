@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import {
   UserPlus,
@@ -71,7 +71,8 @@ export default function TeamPage() {
       const response = await fetch(`/api/companies/${companyId}/members`);
       if (!response.ok) throw new Error("Erro ao buscar membros");
       const data = await response.json();
-      setMembers(data);
+      // A API retorna { members: [...] }
+      setMembers(data.members || []);
       setError(null);
     } catch (error) {
       console.error("Erro ao buscar membros:", error);
@@ -81,10 +82,12 @@ export default function TeamPage() {
     }
   }
 
-  const filteredMembers = members.filter((m) =>
-    m.user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    m.user.email.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredMembers = useMemo(() => {
+    return members.filter((m) =>
+      m.user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      m.user.email.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [members, searchTerm]);
 
   const getRoleIcon = (role: Role) => {
     switch (role) {
