@@ -25,21 +25,37 @@ import {
   Plus,
   ExternalLink,
   TrendingUp,
+  Loader2,
 } from "lucide-react";
 import Link from "next/link";
-import {
-  getClientById, getClientActivities, saveClient, addActivity,
-  getProposalsByClient,
-} from "@/lib/store";
+import { getClientById, updateClient } from "@/lib/api";
 import {
   getClientTypeLabel, getClientStatusLabel, getClientStatusColor, getActivityIcon,
 } from "@/lib/mockClientData";
-import { ClientType, ClientStatus, ClientActivity, ActivityType } from "@/types/client";
+import { ClientType, ClientStatus, ClientActivity, ActivityType, Client } from "@/types/client";
 import type { Proposal } from "@/types/proposal";
 
 // ── Componente de Projetos/Propostas do cliente ───────────────────────────────
 function ClientProposals({ clientId, clientName }: { clientId: string; clientName: string }) {
-  const proposals = getProposalsByClient(clientId);
+  const [proposals, setProposals] = useState<Proposal[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchProposals() {
+      try {
+        const response = await fetch(`/api/proposals?clientId=${clientId}`);
+        if (response.ok) {
+          const data = await response.json();
+          setProposals(data);
+        }
+      } catch (error) {
+        console.error("Erro ao buscar propostas:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchProposals();
+  }, [clientId]);
 
   const statusColors: Record<string, string> = {
     RASCUNHO: "bg-gray-100 text-gray-700",
@@ -52,6 +68,16 @@ function ClientProposals({ clientId, clientName }: { clientId: string; clientNam
 
   const formatCurrency = (v: number) =>
     new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
+
+  if (loading) {
+    return (
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="w-6 h-6 animate-spin text-primary-600" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
@@ -121,62 +147,84 @@ export default function ClientDetailPage() {
   const params = useParams();
   const clientId = params.id as string;
 
-  const [client, setClient] = useState(getClientById(clientId));
-  const [activities, setActivities] = useState(getClientActivities(clientId));
+  const [client, setClient] = useState<Client | null>(null);
+  const [activities, setActivities] = useState<ClientActivity[]>([]);
   const [isEditing, setIsEditing] = useState(false);
-  const [editedClient, setEditedClient] = useState(client);
+  const [editedClient, setEditedClient] = useState<Client | null>(null);
   const [showAddActivityModal, setShowAddActivityModal] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [newActivity, setNewActivity] = useState({
     type: ActivityType.NOTE,
     description: "",
   });
 
   // Dados do usuário logado
-  const [userId, setUserId] = useState("user-1");
-  const [userName, setUserName] = useState("Carlos Silva");
+  const [userId, setUserId] = useState("");
+  const [userName, setUserName] = useState("");
 
   useEffect(() => {
-    const storedUserId = localStorage.getItem("userId") || "user-1";
-    const storedUserName = localStorage.getItem("userName") || "Carlos Silva";
-    setUserId(storedUserId);
-    setUserName(storedUserName);
+    async function init() {
+      try {
+        // Buscar session
+        const sessionRes = await fetch("/api/auth/session");
+        const session = await sessionRes.json();
+        
+        if (!session?.user?.id) {
+          router.push("/login");
+          return;
+        }
 
-    if (!client) {
-      router.push("/clients");
+        setUserId(session.user.id);
+        setUserName(session.user.name || "Usuário");
+
+        // Buscar cliente
+        const clientData = await getClientById(clientId);
+        setClient(clientData);
+        setEditedClient(clientData);
+
+        // Buscar atividades
+        const activitiesRes = await fetch(`/api/clients/${clientId}/activities`);
+        if (activitiesRes.ok) {
+          const activitiesData = await activitiesRes.json();
+          setActivities(activitiesData);
+        }
+
+        setLoading(false);
+      } catch (error) {
+        console.error("Erro ao carregar cliente:", error);
+        router.push("/clients");
+      }
     }
-  }, [client, router]);
 
-  if (!client) {
-    return null;
+    init();
+  }, [clientId, router]);
+
+  if (loading || !client) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 animate-spin text-primary-600 mx-auto mb-4" />
+          <p className="text-gray-600">Carregando cliente...</p>
+        </div>
+      </div>
+    );
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!editedClient) return;
 
-    const statusChanged = client.status !== editedClient.status;
-    const updated = { ...editedClient, updatedAt: new Date().toISOString() };
-
-    // Persiste no store (localStorage)
-    saveClient(updated);
-    setClient(updated);
-    setIsEditing(false);
-
-    if (statusChanged) {
-      const statusActivity: ClientActivity = {
-        id: `activity-${Date.now()}`,
-        clientId: client.id,
-        type: ActivityType.STATUS_CHANGE,
-        description: `Status alterado de "${getClientStatusLabel(client.status)}" para "${getClientStatusLabel(editedClient.status)}"`,
-        userId,
-        userName,
-        createdAt: new Date().toISOString(),
-      };
-      addActivity(statusActivity);
-      setActivities([statusActivity, ...activities]);
+    try {
+      const updated = await updateClient(clientId, editedClient);
+      setClient(updated);
+      setIsEditing(false);
+      alert("Cliente atualizado com sucesso!");
+    } catch (error) {
+      console.error("Erro ao atualizar cliente:", error);
+      alert("Erro ao atualizar cliente");
     }
   };
 
-  const handleAddActivity = (e: React.FormEvent) => {
+  const handleAddActivity = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!newActivity.description.trim()) {
@@ -184,24 +232,31 @@ export default function ClientDetailPage() {
       return;
     }
 
-    const activity: ClientActivity = {
-      id: `activity-${Date.now()}`,
-      clientId: client.id,
-      type: newActivity.type,
-      description: newActivity.description,
-      userId: userId,
-      userName: userName,
-      createdAt: new Date().toISOString(),
-    };
+    try {
+      const response = await fetch(`/api/clients/${clientId}/activities`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: newActivity.type,
+          description: newActivity.description,
+          userId,
+          userName,
+        }),
+      });
 
-    // Persiste no store
-    addActivity(activity);
-    setActivities([activity, ...activities]);
-    setShowAddActivityModal(false);
-    setNewActivity({
-      type: ActivityType.NOTE,
-      description: "",
-    });
+      if (response.ok) {
+        const activity = await response.json();
+        setActivities([activity, ...activities]);
+        setShowAddActivityModal(false);
+        setNewActivity({
+          type: ActivityType.NOTE,
+          description: "",
+        });
+      }
+    } catch (error) {
+      console.error("Erro ao adicionar atividade:", error);
+      alert("Erro ao adicionar atividade");
+    }
   };
 
   const getTypeIcon = (type: ClientType) => {
