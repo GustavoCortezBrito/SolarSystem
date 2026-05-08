@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { prisma } from "@/lib/prisma";
 
 // GET - Listar empresas do usuário
 export async function GET(request: NextRequest) {
   try {
-    const userId = request.headers.get("x-user-id");
+    const session = await getServerSession(authOptions);
 
-    if (!userId) {
+    if (!session?.user?.id) {
       return NextResponse.json(
         { error: "Usuário não autenticado" },
         { status: 401 }
@@ -16,7 +18,7 @@ export async function GET(request: NextRequest) {
     // Buscar empresas do usuário através dos memberships
     const memberships = await prisma.companyMember.findMany({
       where: {
-        userId,
+        userId: session.user.id,
       },
       include: {
         company: true,
@@ -42,9 +44,9 @@ export async function GET(request: NextRequest) {
 // POST - Criar nova empresa
 export async function POST(request: NextRequest) {
   try {
-    const userId = request.headers.get("x-user-id");
+    const session = await getServerSession(authOptions);
 
-    if (!userId) {
+    if (!session?.user?.id) {
       return NextResponse.json(
         { error: "Usuário não autenticado" },
         { status: 401 }
@@ -73,7 +75,7 @@ export async function POST(request: NextRequest) {
       // 2. Criar membership (usuário como OWNER da empresa)
       await tx.companyMember.create({
         data: {
-          userId,
+          userId: session.user.id,
           companyId: company.id,
           role: "OWNER",
         },
@@ -90,31 +92,31 @@ export async function POST(request: NextRequest) {
                 title: "Novo Lead",
                 color: "#3b82f6",
                 order: 0,
-                createdBy: userId,
+                createdBy: session.user.id,
               },
               {
                 title: "Qualificado",
                 color: "#8b5cf6",
                 order: 1,
-                createdBy: userId,
+                createdBy: session.user.id,
               },
               {
                 title: "Proposta Enviada",
                 color: "#f59e0b",
                 order: 2,
-                createdBy: userId,
+                createdBy: session.user.id,
               },
               {
                 title: "Negociação",
                 color: "#10b981",
                 order: 3,
-                createdBy: userId,
+                createdBy: session.user.id,
               },
               {
                 title: "Ganho",
                 color: "#22c55e",
                 order: 4,
-                createdBy: userId,
+                createdBy: session.user.id,
               },
             ],
           },

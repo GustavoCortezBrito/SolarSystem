@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { motion } from "framer-motion";
 import { Building2, Users, Crown, Shield, Briefcase, ChevronRight, LogOut } from "lucide-react";
 import { getRoleLabel, getRoleColor } from "@/lib/permissions";
@@ -19,6 +20,7 @@ interface Membership {
 
 export default function SelectCompanyPage() {
   const router = useRouter();
+  const { data: session, status } = useSession();
   const [userCompanies, setUserCompanies] = useState<
     Array<{ company: Company; membership: Membership }>
   >([]);
@@ -27,20 +29,20 @@ export default function SelectCompanyPage() {
   const [newCompanyName, setNewCompanyName] = useState("");
 
   useEffect(() => {
-    const fetchUserCompanies = async () => {
-      const userId = localStorage.getItem("userId");
-      
-      if (!userId) {
-        router.push("/login");
-        return;
-      }
+    // Redirecionar para login se não estiver autenticado
+    if (status === "unauthenticated") {
+      router.push("/login");
+      return;
+    }
 
+    // Aguardar carregamento da sessão
+    if (status === "loading") {
+      return;
+    }
+
+    const fetchUserCompanies = async () => {
       try {
-        const response = await fetch("/api/companies", {
-          headers: {
-            "x-user-id": userId,
-          },
-        });
+        const response = await fetch("/api/companies");
 
         if (!response.ok) {
           throw new Error("Erro ao buscar empresas");
@@ -70,7 +72,7 @@ export default function SelectCompanyPage() {
     };
 
     fetchUserCompanies();
-  }, [router]);
+  }, [router, status]);
 
   const handleSelectCompany = (companyId: string) => {
     localStorage.setItem("companyId", companyId);
@@ -240,18 +242,11 @@ export default function SelectCompanyPage() {
                 e.preventDefault();
                 if (!newCompanyName.trim()) return;
 
-                const userId = localStorage.getItem("userId");
-                if (!userId) {
-                  alert("Erro: Usuário não autenticado");
-                  return;
-                }
-
                 try {
                   const response = await fetch("/api/companies", {
                     method: "POST",
                     headers: {
                       "Content-Type": "application/json",
-                      "x-user-id": userId,
                     },
                     body: JSON.stringify({
                       name: newCompanyName.trim(),

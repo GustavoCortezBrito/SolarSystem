@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
 import { motion } from "framer-motion";
 import { Mail, Lock, Eye, EyeOff, AlertCircle } from "lucide-react";
 
@@ -19,18 +20,27 @@ export default function LoginPage() {
     setError("");
     setIsLoading(true);
 
-    // Simulação de login (substituir por API real)
-    setTimeout(() => {
-      if (email === "carlos@solartech.com" && password === "senha123") {
-        // Login bem-sucedido
-        localStorage.setItem("userId", "user-1");
-        localStorage.setItem("userEmail", email);
-        router.push("/select-company");
-      } else {
+    try {
+      const result = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      });
+
+      if (result?.error) {
         setError("Email ou senha incorretos");
         setIsLoading(false);
+        return;
       }
-    }, 1000);
+
+      // Login bem-sucedido - redirecionar para seleção de empresa
+      router.push("/select-company");
+      router.refresh();
+    } catch (error) {
+      console.error("Erro no login:", error);
+      setError("Erro ao fazer login. Tente novamente.");
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -175,10 +185,10 @@ export default function LoginPage() {
           </p>
           <div className="space-y-1 text-xs text-gray-600">
             <p>
-              <strong>Email:</strong> carlos@solartech.com
+              <strong>Email:</strong> admin@solarsystem.com
             </p>
             <p>
-              <strong>Senha:</strong> senha123
+              <strong>Senha:</strong> admin123
             </p>
           </div>
         </div>
