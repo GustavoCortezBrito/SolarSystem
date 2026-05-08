@@ -76,7 +76,29 @@ export default function ProposalPreviewPage() {
   const fmtDate = (d: string) =>
     new Date(d).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
 
-  const handleDownloadPDF = () => { if (company) generateProposalPDF(proposal, company); };
+  const handleDownloadPDF = () => {
+    if (!company) {
+      alert("Dados da empresa não disponíveis");
+      return;
+    }
+    
+    // Criar objeto company compatível com o gerador de PDF
+    const companyData = {
+      id: company.id,
+      name: company.name,
+      cnpj: "",
+      address: "",
+      city: "",
+      state: "",
+      phone: "",
+      email: "",
+      website: "",
+      logo: "",
+      proposalFooter: "Energia limpa e renovável para o seu futuro",
+    };
+    
+    generateProposalPDF(proposal, companyData as any);
+  };
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(`${window.location.origin}/proposals/${proposal.id}`);
