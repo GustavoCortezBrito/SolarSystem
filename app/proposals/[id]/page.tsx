@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
-import { ArrowLeft, Download, Mail, MessageCircle, Copy, Edit, Check, ThumbsUp, ThumbsDown, Send } from "lucide-react";
+import { useState, useEffect } from "react";
+import { ArrowLeft, Download, Mail, MessageCircle, Copy, Edit, Check, ThumbsUp, ThumbsDown, Send, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { getProposalById, updateProposalStatus } from "@/lib/store";
-import { mockCompanies } from "@/lib/mockAuthData";
+import { getProposalById, updateProposal } from "@/lib/api";
 import { generateProposalPDF } from "@/lib/pdfGenerator";
+import type { Proposal } from "@/types/proposal";
 
 const statusColors: Record<string, string> = {
   RASCUNHO: "bg-gray-100 text-gray-800",
@@ -27,9 +27,35 @@ export default function ProposalPreviewPage() {
   const router = useRouter();
   const proposalId = params.id as string;
 
-  const proposal = getProposalById(proposalId);
+  const [proposal, setProposal] = useState<Proposal | null>(null);
+  const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<"resumo" | "sistema" | "financeiro" | "termos">("resumo");
+
+  useEffect(() => {
+    async function fetchProposal() {
+      try {
+        const data = await getProposalById(proposalId);
+        setProposal(data);
+      } catch (error) {
+        console.error("Erro ao buscar proposta:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchProposal();
+  }, [proposalId]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-primary-50 to-blue-50 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 animate-spin text-primary-600 mx-auto mb-4" />
+          <p className="text-gray-600">Carregando proposta...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!proposal) {
     return (
@@ -42,7 +68,7 @@ export default function ProposalPreviewPage() {
     );
   }
 
-  const company = mockCompanies.find((c) => c.id === proposal.companyId);
+  const company = proposal.company;
 
   const fmt = (v: number) =>
     new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
@@ -63,10 +89,14 @@ export default function ProposalPreviewPage() {
     window.open(`https://wa.me/${proposal.client.phone?.replace(/\D/g, "")}?text=${encodeURIComponent(msg)}`, "_blank");
   };
 
-  const handleChangeStatus = (newStatus: "ACEITA" | "REJEITADA" | "ENVIADA") => {
-    const uid = localStorage.getItem("userId") || "user-1";
-    updateProposalStatus(proposal.id, newStatus, uid);
-    router.push("/proposals");
+  const handleChangeStatus = async (newStatus: "ACEITA" | "REJEITADA" | "ENVIADA") => {
+    try {
+      await updateProposal(proposal.id, { status: newStatus });
+      router.push("/proposals");
+    } catch (error) {
+      console.error("Erro ao atualizar status:", error);
+      alert("Erro ao atualizar status da proposta");
+    }
   };
 
   return (
