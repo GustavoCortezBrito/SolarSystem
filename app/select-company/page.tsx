@@ -27,6 +27,7 @@ export default function SelectCompanyPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newCompanyName, setNewCompanyName] = useState("");
+  const [isCreating, setIsCreating] = useState(false);
 
   useEffect(() => {
     // Redirecionar para login se não estiver autenticado
@@ -240,7 +241,9 @@ export default function SelectCompanyPage() {
             <form
               onSubmit={async (e) => {
                 e.preventDefault();
-                if (!newCompanyName.trim()) return;
+                if (!newCompanyName.trim() || isCreating) return;
+
+                setIsCreating(true);
 
                 try {
                   const response = await fetch("/api/companies", {
@@ -257,6 +260,7 @@ export default function SelectCompanyPage() {
 
                   if (!response.ok) {
                     alert(data.error || "Erro ao criar empresa");
+                    setIsCreating(false);
                     return;
                   }
 
@@ -268,6 +272,7 @@ export default function SelectCompanyPage() {
                 } catch (error) {
                   console.error("Erro ao criar empresa:", error);
                   alert("Erro ao criar empresa. Tente novamente.");
+                  setIsCreating(false);
                 }
               }}
               className="space-y-4"
@@ -298,17 +303,20 @@ export default function SelectCompanyPage() {
               <div className="flex items-center space-x-3 pt-4">
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+                  disabled={isCreating || !newCompanyName.trim()}
+                  className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Criar Empresa
+                  {isCreating ? "Criando..." : "Criar Empresa"}
                 </button>
                 <button
                   type="button"
                   onClick={() => {
                     setShowCreateModal(false);
                     setNewCompanyName("");
+                    setIsCreating(false);
                   }}
-                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                  disabled={isCreating}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Cancelar
                 </button>

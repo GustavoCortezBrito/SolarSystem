@@ -2,7 +2,8 @@ import "dotenv/config";
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
-// Prisma 7 usa prisma.config.ts para configuração
+// Para o seed, vamos usar Prisma sem adapter (funciona localmente)
+// O adapter é necessário apenas para Edge Runtime (Vercel)
 const prisma = new PrismaClient();
 
 async function main() {
