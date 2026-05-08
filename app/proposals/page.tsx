@@ -1,10 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus, Search, FileText, Download, Send, Copy, Eye, Edit, Trash2, Filter, ArrowLeft, TrendingUp } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { getAllProposals } from "@/lib/store";
 import type { Proposal, ProposalStatus } from "@/types/proposal";
 
 const statusColors: Record<ProposalStatus, string> = {
@@ -29,12 +28,41 @@ export default function ProposalsPage() {
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<ProposalStatus | "ALL">("ALL");
-  // Lê do store em memória a cada render para pegar novas propostas criadas
-  const proposals = getAllProposals();
+  const [proposals, setProposals] = useState<Proposal[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Buscar propostas da API
+  useEffect(() => {
+    async function fetchProposals() {
+      try {
+        const companyId = localStorage.getItem("companyId");
+        if (!companyId) {
+          router.push("/select-company");
+          return;
+        }
+
+        const response = await fetch(`/api/proposals?companyId=${companyId}`);
+        if (!response.ok) throw new Error("Erro ao buscar propostas");
+        
+        const data = await response.json();
+        setProposals(data);
+      } catch (error) {
+        console.error("Erro ao carregar propostas:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchProposals();
+  }, [router]);
 
   const filteredProposals = proposals.filter((proposal) => {
+    const clientName = typeof proposal.client === 'string' 
+      ? proposal.client 
+      : proposal.client?.name || '';
+    
     const matchesSearch =
-      proposal.client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       proposal.id.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesStatus = statusFilter === "ALL" || proposal.status === statusFilter;
@@ -62,9 +90,26 @@ export default function ProposalsPage() {
     alert(`Download do PDF da proposta ${proposalId}`);
   };
 
-  const handleSendProposal = (proposalId: string) => {
-    // TODO: Implementar envio da proposta
-    alert(`Enviar proposta ${proposalId}`);
+  const handleSendProposal = async (proposalId: string) => {
+    try {
+      const response = await fetch(`/api/proposals/${proposalId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "ENVIADA" }),
+      });
+
+      if (!response.ok) throw new Error("Erro ao enviar proposta");
+      
+      // Atualizar lista
+      setProposals(proposals.map(p => 
+        p.id === proposalId ? { ...p, status: "ENVIADA" as ProposalStatus } : p
+      ));
+      
+      alert("Proposta enviada com sucesso!");
+    } catch (error) {
+      console.error("Erro ao enviar proposta:", error);
+      alert("Erro ao enviar proposta. Tente novamente.");
+    }
   };
 
   const handleDuplicate = (proposalId: string) => {
@@ -72,12 +117,35 @@ export default function ProposalsPage() {
     alert(`Duplicar proposta ${proposalId}`);
   };
 
-  const handleDelete = (proposalId: string) => {
-    if (confirm("Tem certeza que deseja excluir esta proposta?")) {
-      // TODO: Implementar exclusão
-      alert(`Excluir proposta ${proposalId}`);
+  const handleDelete = async (proposalId: string) => {
+    if (!confirm("Tem certeza que deseja excluir esta proposta?")) return;
+    
+    try {
+      const response = await fetch(`/api/proposals/${proposalId}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) throw new Error("Erro ao excluir proposta");
+      
+      // Remover da lista
+      setProposals(proposals.filter(p => p.id !== proposalId));
+      alert("Proposta excluída com sucesso!");
+    } catch (error) {
+      console.error("Erro ao excluir proposta:", error);
+      alert("Erro ao excluir proposta. Tente novamente.");
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Carregando propostas...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 to-blue-50">
@@ -190,7 +258,12 @@ export default function ProposalsPage() {
                   {formatCurrency(
                     proposals
                       .filter((p) => p.status === "ACEITA")
-                      .reduce((acc, p) => acc + p.financial.totalCost, 0)
+                      .reduce((acc, p) => {
+                        const financial = typeof p.financial === 'string'
+                          ? JSON.parse(p.financial)
+                          : p.financial;
+                        return acc + (financial.totalCost || 0);
+                      }, 0)
                   )}
                 </p>
               </div>
@@ -244,20 +317,33 @@ export default function ProposalsPage() {
                     </td>
                   </tr>
                 ) : (
-                  filteredProposals.map((proposal) => (
+                  filteredProposals.map((proposal) => {
+                    const clientData = typeof proposal.client === 'string' 
+                      ? JSON.parse(proposal.client as string)
+                      : proposal.client;
+                    
+                    const systemData = typeof proposal.system === 'string'
+                      ? JSON.parse(proposal.system as string)
+                      : proposal.system;
+                    
+                    const financialData = typeof proposal.financial === 'string'
+                      ? JSON.parse(proposal.financial as string)
+                      : proposal.financial;
+
+                    return (
                     <tr key={proposal.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className="text-sm font-medium text-gray-900">
-                          #{proposal.id}
+                          #{proposal.id.substring(0, 8)}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div>
                           <div className="text-sm font-medium text-gray-900">
-                            {proposal.client.name}
+                            {clientData.name}
                           </div>
                           <div className="text-sm text-gray-500">
-                            {proposal.client.city}, {proposal.client.state}
+                            {clientData.city}, {clientData.state}
                           </div>
                         </div>
                       </td>
@@ -265,10 +351,10 @@ export default function ProposalsPage() {
                         {formatDate(proposal.createdAt)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {proposal.system.totalPower} kWp
+                        {systemData.totalPower} kWp
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {formatCurrency(proposal.financial.totalCost)}
+                        {formatCurrency(financialData.totalCost)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span
@@ -332,7 +418,7 @@ export default function ProposalsPage() {
                         </div>
                       </td>
                     </tr>
-                  ))
+                  )})
                 )}
               </tbody>
             </table>

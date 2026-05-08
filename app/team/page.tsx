@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   UserPlus,
@@ -17,24 +17,69 @@ import {
   Settings,
 } from "lucide-react";
 import Link from "next/link";
-import { getCompanyMembers } from "@/lib/mockAuthData";
 import { getRoleLabel, getRoleColor, canRemoveMember, canChangeRole } from "@/lib/permissions";
 import { Role, SubscriptionPlan, SubscriptionStatus, MembershipStatus, type AuthContext } from "@/types/auth";
+import { useSession } from "next-auth/react";
+
+interface Member {
+  id: string;
+  userId: string;
+  companyId: string;
+  role: Role;
+  status: MembershipStatus;
+  createdAt: string;
+  updatedAt: string;
+  user: {
+    id: string;
+    name: string;
+    email: string;
+  };
+}
 
 export default function TeamPage() {
+  const { data: session } = useSession();
   const [searchTerm, setSearchTerm] = useState("");
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [selectedMember, setSelectedMember] = useState<string | null>(null);
+  const [members, setMembers] = useState<Member[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [companyId, setCompanyId] = useState<string>("");
 
-  // Simular contexto do usuário logado (OWNER)
+  // Simular contexto do usuário logado
   const context: AuthContext = {
-    user: { id: "user-1", name: "Carlos Silva", email: "carlos@solartech.com", createdAt: "", updatedAt: "" },
-    company: { id: "company-1", name: "Solar Tech Ltda", slug: "solar-tech", plan: SubscriptionPlan.PROFESSIONAL, subscriptionStatus: SubscriptionStatus.ACTIVE, maxUsers: 15, maxBoards: 10, settings: { timezone: "", currency: "", language: "", features: { dimensionamento: true, propostas: true, automacoes: true, integracao_whatsapp: true } }, createdAt: "", updatedAt: "" },
-    membership: { id: "membership-1", userId: "user-1", companyId: "company-1", role: Role.OWNER, status: MembershipStatus.ACTIVE, createdAt: "", updatedAt: "" },
+    user: { id: session?.user?.id || "", name: session?.user?.name || "", email: session?.user?.email || "", createdAt: "", updatedAt: "" },
+    company: { id: companyId, name: "Solar Tech Ltda", slug: "solar-tech", plan: SubscriptionPlan.PROFESSIONAL, subscriptionStatus: SubscriptionStatus.ACTIVE, maxUsers: 15, maxBoards: 10, settings: { timezone: "", currency: "", language: "", features: { dimensionamento: true, propostas: true, automacoes: true, integracao_whatsapp: true } }, createdAt: "", updatedAt: "" },
+    membership: { id: "membership-1", userId: session?.user?.id || "", companyId: companyId, role: Role.OWNER, status: MembershipStatus.ACTIVE, createdAt: "", updatedAt: "" },
     permissions: [],
   };
 
-  const members = getCompanyMembers("company-1");
+  useEffect(() => {
+    const storedCompanyId = localStorage.getItem("companyId");
+    if (storedCompanyId) {
+      setCompanyId(storedCompanyId);
+      fetchMembers(storedCompanyId);
+    } else {
+      setIsLoading(false);
+      setError("Empresa não encontrada");
+    }
+  }, []);
+
+  async function fetchMembers(companyId: string) {
+    try {
+      setIsLoading(true);
+      const response = await fetch(`/api/companies/${companyId}/members`);
+      if (!response.ok) throw new Error("Erro ao buscar membros");
+      const data = await response.json();
+      setMembers(data);
+      setError(null);
+    } catch (error) {
+      console.error("Erro ao buscar membros:", error);
+      setError("Erro ao carregar membros da equipe");
+    } finally {
+      setIsLoading(false);
+    }
+  }
 
   const filteredMembers = members.filter((m) =>
     m.user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -53,6 +98,33 @@ export default function TeamPage() {
         return <UsersIcon className="w-4 h-4" />;
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Carregando equipe...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600 mb-4">{error}</p>
+          <button
+            onClick={() => companyId && fetchMembers(companyId)}
+            className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+          >
+            Tentar novamente
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -133,9 +205,9 @@ export default function TeamPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {filteredMembers.map(({ user, membership }) => (
+                {filteredMembers.map((member) => (
                   <motion.tr
-                    key={membership.id}
+                    key={member.id}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     className="hover:bg-gray-50"
@@ -143,23 +215,23 @@ export default function TeamPage() {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div className="w-10 h-10 rounded-full bg-primary-500 flex items-center justify-center text-white font-medium">
-                          {user.name.charAt(0).toUpperCase()}
+                          {member.user.name.charAt(0).toUpperCase()}
                         </div>
                         <div className="ml-4">
                           <div className="text-sm font-medium text-gray-900">
-                            {user.name}
-                            {membership.userId === context.user.id && (
+                            {member.user.name}
+                            {member.userId === context.user.id && (
                               <span className="ml-2 text-xs text-gray-500">(Você)</span>
                             )}
                           </div>
-                          <div className="text-sm text-gray-500">{user.email}</div>
+                          <div className="text-sm text-gray-500">{member.user.email}</div>
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex items-center space-x-1 px-3 py-1 rounded-full text-xs font-medium ${getRoleColor(membership.role)}`}>
-                        {getRoleIcon(membership.role)}
-                        <span>{getRoleLabel(membership.role)}</span>
+                      <span className={`inline-flex items-center space-x-1 px-3 py-1 rounded-full text-xs font-medium ${getRoleColor(member.role)}`}>
+                        {getRoleIcon(member.role)}
+                        <span>{getRoleLabel(member.role)}</span>
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -168,23 +240,23 @@ export default function TeamPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(membership.createdAt).toLocaleDateString("pt-BR")}
+                      {new Date(member.createdAt).toLocaleDateString("pt-BR")}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="relative inline-block">
                         <button
-                          onClick={() => setSelectedMember(selectedMember === membership.id ? null : membership.id)}
+                          onClick={() => setSelectedMember(selectedMember === member.id ? null : member.id)}
                           className="text-gray-400 hover:text-gray-600"
                         >
                           <MoreVertical className="w-5 h-5" />
                         </button>
-                        {selectedMember === membership.id && (
+                        {selectedMember === member.id && (
                           <motion.div
                             initial={{ opacity: 0, scale: 0.95 }}
                             animate={{ opacity: 1, scale: 1 }}
                             className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10"
                           >
-                            {canChangeRole(context, membership.role) && (
+                            {canChangeRole(context, member.role) && (
                               <button className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2">
                                 <Edit2 className="w-4 h-4" />
                                 <span>Alterar cargo</span>
@@ -194,7 +266,7 @@ export default function TeamPage() {
                               <Mail className="w-4 h-4" />
                               <span>Enviar email</span>
                             </button>
-                            {canRemoveMember(context, membership) && (
+                            {canRemoveMember(context, member) && (
                               <button className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center space-x-2">
                                 <Trash2 className="w-4 h-4" />
                                 <span>Remover</span>

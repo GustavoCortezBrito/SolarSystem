@@ -4,60 +4,74 @@ import { useState, useEffect } from "react";
 import { ArrowLeft, Bell, Check, CheckCheck, Trash2, Filter, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  getNotifications,
-  markAsRead,
-  markAllAsRead,
-} from "@/lib/store";
+import { getNotifications, markNotificationAsRead, markAllNotificationsAsRead } from "@/lib/api";
 import type { Notification, NotificationType } from "@/types/notification";
 
 export default function NotificationsPage() {
   const router = useRouter();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [showFilters, setShowFilters] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState({
     read: "",
     type: "",
   });
 
-  const userId = "user-1"; // Em produção, pegar do contexto de autenticação
-
   useEffect(() => {
     loadNotifications();
+  }, []);
+
+  const loadNotifications = async () => {
+    try {
+      setIsLoading(true);
+      const data = await getNotifications();
+      
+      // Aplicar filtros
+      const filtered = data.filter((notif) => {
+        if (filters.read === "true" && !notif.read) return false;
+        if (filters.read === "false" && notif.read) return false;
+        if (filters.type && notif.type !== filters.type) return false;
+        return true;
+      });
+      
+      setNotifications(filtered);
+      setError(null);
+    } catch (error) {
+      console.error("Erro ao buscar notificações:", error);
+      setError("Erro ao carregar notificações");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!isLoading) {
+      loadNotifications();
+    }
   }, [filters]);
 
-  const loadNotifications = () => {
-    const allNotifications = getNotifications(userId);
-    
-    // Aplicar filtros manualmente
-    const filtered = allNotifications.filter((notif) => {
-      // Filtro de leitura
-      if (filters.read === "true" && !notif.read) return false;
-      if (filters.read === "false" && notif.read) return false;
-      
-      // Filtro de tipo
-      if (filters.type && notif.type !== filters.type) return false;
-      
-      return true;
-    });
-    
-    setNotifications(filtered);
+  const handleMarkAsRead = async (notificationId: string) => {
+    try {
+      await markNotificationAsRead(notificationId);
+      loadNotifications();
+    } catch (error) {
+      console.error("Erro ao marcar como lida:", error);
+    }
   };
 
-  const handleMarkAsRead = (notificationId: string) => {
-    markAsRead(userId, notificationId);
-    loadNotifications();
+  const handleMarkAllAsRead = async () => {
+    try {
+      await markAllNotificationsAsRead();
+      loadNotifications();
+    } catch (error) {
+      console.error("Erro ao marcar todas como lidas:", error);
+    }
   };
 
-  const handleMarkAllAsRead = () => {
-    markAllAsRead(userId);
-    loadNotifications();
-  };
-
-  const handleDelete = (notificationId: string) => {
-    // TODO: Implementar deleteNotification no store
-    // Por enquanto, apenas recarrega
-    loadNotifications();
+  const handleDelete = async (notificationId: string) => {
+    // TODO: Implementar delete na API
+    console.log("Delete não implementado ainda:", notificationId);
   };
 
   const handleNotificationClick = (notification: Notification) => {
@@ -134,6 +148,33 @@ export default function NotificationsPage() {
   };
 
   const unreadCount = notifications.filter((n) => !n.read).length;
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-primary-50 to-blue-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Carregando notificações...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-primary-50 to-blue-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600 mb-4">{error}</p>
+          <button
+            onClick={loadNotifications}
+            className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+          >
+            Tentar novamente
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 to-blue-50">

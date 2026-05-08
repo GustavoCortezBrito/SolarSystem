@@ -8,71 +8,40 @@
 - [x] Board layout com NextAuth session
 - [x] Scripts de manutenção do banco
 - [x] Conexão com Supabase via adapter pg
+- [x] **Board** (`/app/board/page.tsx`) - Migrado para API
+- [x] **Propostas** (`/app/proposals/page.tsx`) - Migrado para API
+- [x] **Clientes** (`/app/clients/page.tsx`) - Migrado para API
+- [x] **Notificações** (`/app/notifications/page.tsx`) - Migrado para API
+- [x] **Equipe/Team** (`/app/team/page.tsx`) - Migrado para API
 
-## 🔄 Pendente - Páginas com Dados Mockados
+## 🎉 Migração Completa!
 
-### 1. Propostas (`/app/proposals/page.tsx`)
-**Status:** Usando `getAllProposals()` do store mockado
+Todas as páginas principais foram migradas para usar dados reais da API:
 
-**O que fazer:**
-- Substituir `getAllProposals()` por chamada à API `/api/proposals`
-- Usar `useEffect` para buscar propostas ao carregar
-- Adicionar loading state
-- Tratar erros
+### ✅ Board
+- Usa `/api/board` para buscar colunas e cards
+- Usa `/api/board/cards` para criar e mover cards
+- Usa `/api/notifications` para notificações
 
-**Exemplo:**
-```typescript
-const [proposals, setProposals] = useState<Proposal[]>([]);
-const [isLoading, setIsLoading] = useState(true);
+### ✅ Propostas
+- Usa `/api/proposals` para listar propostas
+- Usa `/api/proposals/[id]` para atualizar e deletar
+- Loading states e tratamento de erros implementados
 
-useEffect(() => {
-  async function fetchProposals() {
-    try {
-      const companyId = localStorage.getItem("companyId");
-      const response = await fetch(`/api/proposals?companyId=${companyId}`);
-      const data = await response.json();
-      setProposals(data);
-    } catch (error) {
-      console.error("Erro ao buscar propostas:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  }
-  fetchProposals();
-}, []);
-```
+### ✅ Clientes
+- Usa `/api/clients` para listar e criar clientes
+- Loading states e tratamento de erros implementados
+- Criação de clientes via API
 
-### 2. Equipe/Team (`/app/team/page.tsx`)
-**Status:** Usando dados mockados de membros
+### ✅ Notificações
+- Usa `/api/notifications` para listar notificações
+- Usa `markNotificationAsRead` e `markAllNotificationsAsRead` da API
+- Loading states e tratamento de erros implementados
 
-**O que fazer:**
-- Criar API `/api/companies/[id]/members` (já existe!)
-- Buscar membros da empresa via API
-- Atualizar página para usar dados reais
-
-### 3. Notificações (`/app/notifications/page.tsx`)
-**Status:** Usando `getNotifications()` do store mockado
-
-**O que fazer:**
-- API `/api/notifications` já existe
-- Substituir `getNotifications()` por chamada à API
-- Adicionar loading state
-
-### 4. Clientes (`/app/clients/page.tsx`)
-**Status:** Provavelmente usando dados mockados
-
-**O que fazer:**
-- Verificar se está usando API ou store
-- Se mockado, substituir por `/api/clients`
-
-### 5. Board (`/app/board/page.tsx`)
-**Status:** Usando `getBoard()` do store mockado
-
-**O que fazer:**
-- API `/api/board` já existe
-- Substituir `getBoard()` por chamada à API
-- Atualizar `onCardMoved` para usar `/api/board/cards` (PUT)
-- Atualizar criação de cards para usar `/api/board/cards` (POST)
+### ✅ Equipe/Team
+- Usa `/api/companies/[id]/members` para listar membros
+- Loading states e tratamento de erros implementados
+- Integrado com NextAuth session
 
 ## 📝 Padrão de Migração
 

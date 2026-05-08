@@ -21,18 +21,20 @@ import {
   X,
 } from "lucide-react";
 import Link from "next/link";
-import { getCompanyClients, getClientTypeLabel, getClientStatusLabel, getClientStatusColor } from "@/lib/mockClientData";
-import { addClient } from "@/lib/store";
+import { getClientTypeLabel, getClientStatusLabel, getClientStatusColor } from "@/lib/mockClientData";
 import { ClientType, ClientStatus, Client } from "@/types/client";
+import { getClients, createClient } from "@/lib/api";
 
 export default function ClientsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState<ClientType | "ALL">("ALL");
   const [filterStatus, setFilterStatus] = useState<ClientStatus | "ALL">("ALL");
   const [showAddModal, setShowAddModal] = useState(false);
-  const [companyId, setCompanyId] = useState<string>("company-1");
-  const [userId, setUserId] = useState<string>("user-1");
+  const [companyId, setCompanyId] = useState<string>("");
+  const [userId, setUserId] = useState<string>("");
   const [clients, setClients] = useState<Client[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -44,18 +46,34 @@ export default function ClientsPage() {
   });
 
   useEffect(() => {
-    const storedCompanyId = localStorage.getItem("companyId") || "company-1";
-    const storedUserId = localStorage.getItem("userId") || "user-1";
-    setCompanyId(storedCompanyId);
-    setUserId(storedUserId);
+    const storedCompanyId = localStorage.getItem("companyId");
+    const storedUserId = localStorage.getItem("userId");
     
-    // Carrega do store (que já hidrata do localStorage)
-    const { getCompanyClients: storeGetClients } = require("@/lib/store");
-    const companyClients = storeGetClients(storedCompanyId);
-    setClients(companyClients);
+    if (storedCompanyId && storedUserId) {
+      setCompanyId(storedCompanyId);
+      setUserId(storedUserId);
+      fetchClients(storedCompanyId);
+    } else {
+      setIsLoading(false);
+      setError("Empresa ou usuário não encontrado");
+    }
   }, []);
 
-  const handleCreateClient = (e: React.FormEvent) => {
+  async function fetchClients(companyId: string) {
+    try {
+      setIsLoading(true);
+      const data = await getClients(companyId);
+      setClients(data);
+      setError(null);
+    } catch (error) {
+      console.error("Erro ao buscar clientes:", error);
+      setError("Erro ao carregar clientes");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  const handleCreateClient = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!formData.name.trim() || !formData.email.trim() || !formData.phone.trim()) {
@@ -63,38 +81,36 @@ export default function ClientsPage() {
       return;
     }
 
-    const newClient: Client = {
-      id: `client-${Date.now()}`,
-      companyId: companyId,
-      name: formData.name,
-      email: formData.email,
-      phone: formData.phone,
-      type: formData.type,
-      status: ClientStatus.LEAD,
-      averageConsumption: formData.averageConsumption ? parseInt(formData.averageConsumption) : undefined,
-      assignedToId: userId,
-      tags: [],
-      projectIds: [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      createdBy: userId,
-    };
+    try {
+      const newClient = await createClient({
+        companyId: companyId,
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        type: formData.type,
+        status: ClientStatus.LEAD,
+        averageConsumption: formData.averageConsumption ? parseInt(formData.averageConsumption) : undefined,
+        assignedToId: userId,
+        createdBy: userId,
+      });
 
-    // Persiste no store (localStorage) e gera notificação automática
-    addClient(newClient);
-    setClients((prev) => [newClient, ...prev]);
-    setShowAddModal(false);
-    
-    // Reset form
-    setFormData({
-      name: "",
-      email: "",
-      phone: "",
-      type: ClientType.RESIDENTIAL,
-      averageConsumption: "",
-    });
+      setClients((prev) => [newClient, ...prev]);
+      setShowAddModal(false);
+      
+      // Reset form
+      setFormData({
+        name: "",
+        email: "",
+        phone: "",
+        type: ClientType.RESIDENTIAL,
+        averageConsumption: "",
+      });
 
-    alert("Cliente cadastrado com sucesso!");
+      alert("Cliente cadastrado com sucesso!");
+    } catch (error) {
+      console.error("Erro ao criar cliente:", error);
+      alert("Erro ao cadastrar cliente. Tente novamente.");
+    }
   };
 
   const filteredClients = clients.filter((client) => {
@@ -118,6 +134,33 @@ export default function ClientsPage() {
         return <Tractor className="w-4 h-4" />;
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Carregando clientes...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600 mb-4">{error}</p>
+          <button
+            onClick={() => companyId && fetchClients(companyId)}
+            className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+          >
+            Tentar novamente
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
