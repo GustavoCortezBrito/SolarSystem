@@ -7,24 +7,21 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  getBoard, saveBoard, onCardMoved, onCardClientLinked,
-  getNotifications, getUnreadCount, markAsRead,
-} from "@/lib/store";
+import { useSession } from "next-auth/react";
 import type { Notification } from "@/types/notification";
 import { Column } from "@/components/board/Column";
 import { AddColumnButton } from "@/components/board/AddColumnButton";
 import { CardModal } from "@/components/board/CardModal";
-import { mockCompanies } from "@/lib/mockAuthData";
 import type { Board, Column as ColumnType, Card } from "@/types/board";
 
 export default function BoardPage() {
   const router = useRouter();
-  const [companyId, setCompanyId] = useState("company-1");
-  const [userId, setUserId] = useState("user-1");
+  const { data: session } = useSession();
+  const [companyId, setCompanyId] = useState<string | null>(null);
   const [board, setBoard] = useState<Board | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedCard, setSelectedCard] = useState<{ card: Card; columnId: string } | null>(null);
-  const [companyName, setCompanyName] = useState("Solar Tech Ltda");
+  const [companyName, setCompanyName] = useState("Empresa");
   const [userName, setUserName] = useState("Usuário");
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -38,26 +35,71 @@ export default function BoardPage() {
     assignee: "ALL", priority: "ALL", dueDate: "ALL", labels: [] as string[],
   });
 
-  // ── Init ────────────────────────────────────────────────────────────────────
+  // ── Init: Buscar board da API ──────────────────────────────────────────────
   useEffect(() => {
-    const cId = localStorage.getItem("companyId") || "company-1";
-    const uId = localStorage.getItem("userId") || "user-1";
-    const uName = localStorage.getItem("userName") || "Carlos Silva";
-    setCompanyId(cId);
-    setUserId(uId);
-    setUserName(uName);
+    async function fetchBoard() {
+      try {
+        const cId = localStorage.getItem("companyId");
+        if (!cId) {
+          router.push("/select-company");
+          return;
+        }
 
-    const company = mockCompanies.find((c) => c.id === cId);
-    if (company) setCompanyName(company.name);
+        setCompanyId(cId);
+        setUserName(session?.user?.name || "Usuário");
 
-    // Carrega board do store (localStorage → seed)
-    const b = getBoard(cId);
-    setBoard(b);
+        // Buscar board da API
+        const response = await fetch(`/api/board?companyId=${cId}`);
+        if (!response.ok) throw new Error("Erro ao buscar board");
+        
+        const data = await response.json();
+        
+        // Transformar dados da API para o formato do Board
+        const boardData: Board = {
+          id: data.id,
+          title: data.name,
+          columns: data.columns.map((col: any) => ({
+            id: col.id,
+            title: col.title,
+            color: col.color,
+            cards: col.cards.map((card: any) => ({
+              id: card.id,
+              title: card.title,
+              description: card.description || "",
+              labels: card.tags || [],
+              assignees: [],
+              clientId: card.clientId,
+              clientName: card.clientName,
+              dueDate: card.dueDate,
+              priority: undefined,
+              createdAt: card.createdAt,
+              updatedAt: card.updatedAt,
+            })),
+          })),
+          members: [], // TODO: buscar membros da empresa
+          availableLabels: [],
+        };
 
-    // Notificações
-    setUnreadCount(getUnreadCount(uId));
-    setRecentNotifs(getNotifications(uId).slice(0, 5));
-  }, []);
+        setBoard(boardData);
+        
+        // Buscar notificações
+        const notifsResponse = await fetch("/api/notifications");
+        if (notifsResponse.ok) {
+          const notifs = await notifsResponse.json();
+          setRecentNotifs(notifs.slice(0, 5));
+          setUnreadCount(notifs.filter((n: Notification) => !n.read).length);
+        }
+      } catch (error) {
+        console.error("Erro ao carregar board:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    if (session) {
+      fetchBoard();
+    }
+  }, [session, router]);
 
   // Fechar notificações ao clicar fora
   useEffect(() => {
@@ -69,40 +111,48 @@ export default function BoardPage() {
     return () => document.removeEventListener("mousedown", handler);
   }, [showNotifications]);
 
-  // ── Persistência: salva no store sempre que o board muda ────────────────────
-  const updateBoard = useCallback(
-    (newBoard: Board) => {
-      setBoard(newBoard);
-      saveBoard(newBoard, companyId);
-    },
-    [companyId]
-  );
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Carregando board...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!board) return null;
 
   // ── Handlers ────────────────────────────────────────────────────────────────
-  const handleAddColumn = (title: string) => {
+  const handleAddColumn = async (title: string) => {
+    // TODO: Implementar API para adicionar coluna
     const newCol: ColumnType = { id: `col-${Date.now()}`, title, cards: [] };
-    updateBoard({ ...board, columns: [...board.columns, newCol] });
+    setBoard(board ? { ...board, columns: [...board.columns, newCol] } : null);
   };
 
-  const handleDeleteColumn = (columnId: string) => {
-    updateBoard({ ...board, columns: board.columns.filter((c) => c.id !== columnId) });
+  const handleDeleteColumn = async (columnId: string) => {
+    // TODO: Implementar API para deletar coluna
+    setBoard(board ? { ...board, columns: board.columns.filter((c) => c.id !== columnId) } : null);
   };
 
-  const handleUpdateColumn = (columnId: string, title: string, color?: string) => {
-    updateBoard({
+  const handleUpdateColumn = async (columnId: string, title: string, color?: string) => {
+    // TODO: Implementar API para atualizar coluna
+    setBoard(board ? {
       ...board,
       columns: board.columns.map((c) => c.id === columnId ? { ...c, title, color } : c),
-    });
+    } : null);
   };
 
-  const handleCardMove = (
+  const handleCardMove = async (
     cardId: string,
     sourceColumnId: string,
     targetColumnId: string,
     targetIndex: number
   ) => {
+    if (!board) return;
+    
     const newColumns = board.columns.map((c) => ({ ...c, cards: [...c.cards] }));
     const src = newColumns.find((c) => c.id === sourceColumnId);
     const tgt = newColumns.find((c) => c.id === targetColumnId);
@@ -113,27 +163,29 @@ export default function BoardPage() {
     const [card] = src.cards.splice(cardIdx, 1);
     tgt.cards.splice(targetIndex, 0, card);
 
-    const newBoard = { ...board, columns: newColumns };
-    updateBoard(newBoard);
+    // Atualizar UI otimisticamente
+    setBoard({ ...board, columns: newColumns });
 
-    // ── Correlação: atualiza cliente se card tiver clientId ──────────────────
-    if (sourceColumnId !== targetColumnId) {
-      const srcTitle = board.columns.find((c) => c.id === sourceColumnId)?.title ?? "";
-      const tgtTitle = newColumns.find((c) => c.id === targetColumnId)?.title ?? "";
-      onCardMoved(card, srcTitle, tgtTitle, userId);
+    // Chamar API para mover card
+    try {
+      await fetch("/api/board/cards", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cardId,
+          columnId: targetColumnId,
+          order: targetIndex,
+        }),
+      });
+    } catch (error) {
+      console.error("Erro ao mover card:", error);
+      // TODO: Reverter mudança em caso de erro
     }
   };
 
-  const handleUpdateCard = (columnId: string, cardId: string, updates: Partial<Card>) => {
-    // Detectar se o cliente foi vinculado agora
-    const oldCard = board.columns
-      .find((c) => c.id === columnId)?.cards
-      .find((c) => c.id === cardId);
-
-    if (updates.clientId && updates.clientId !== oldCard?.clientId) {
-      onCardClientLinked({ ...oldCard!, ...updates } as Card, updates.clientId, userId);
-    }
-
+  const handleUpdateCard = async (columnId: string, cardId: string, updates: Partial<Card>) => {
+    if (!board) return;
+    
     const newBoard = {
       ...board,
       columns: board.columns.map((col) =>
@@ -149,11 +201,15 @@ export default function BoardPage() {
           : col
       ),
     };
-    updateBoard(newBoard);
+    setBoard(newBoard);
+
+    // TODO: Chamar API para atualizar card
   };
 
-  const handleDeleteCard = (columnId: string, cardId: string) => {
-    updateBoard({
+  const handleDeleteCard = async (columnId: string, cardId: string) => {
+    if (!board) return;
+    
+    setBoard({
       ...board,
       columns: board.columns.map((col) =>
         col.id === columnId
@@ -161,24 +217,49 @@ export default function BoardPage() {
           : col
       ),
     });
+
+    // TODO: Chamar API para deletar card
   };
 
-  const handleAddCard = (columnId: string, title: string) => {
-    const newCard: Card = {
-      id: `card-${Date.now()}`,
-      title,
-      description: "",
-      labels: [],
-      assignees: [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    updateBoard({
-      ...board,
-      columns: board.columns.map((col) =>
-        col.id === columnId ? { ...col, cards: [...col.cards, newCard] } : col
-      ),
-    });
+  const handleAddCard = async (columnId: string, title: string) => {
+    if (!board || !companyId) return;
+    
+    try {
+      const response = await fetch("/api/board/cards", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title,
+          columnId,
+          companyId,
+        }),
+      });
+
+      if (!response.ok) throw new Error("Erro ao criar card");
+      
+      const newCard = await response.json();
+      
+      // Atualizar board com o novo card
+      setBoard({
+        ...board,
+        columns: board.columns.map((col) =>
+          col.id === columnId ? { ...col, cards: [...col.cards, {
+            id: newCard.id,
+            title: newCard.title,
+            description: newCard.description || "",
+            labels: newCard.tags || [],
+            assignees: [],
+            clientId: newCard.clientId,
+            clientName: newCard.clientName,
+            createdAt: newCard.createdAt,
+            updatedAt: newCard.updatedAt,
+          }] } : col
+        ),
+      });
+    } catch (error) {
+      console.error("Erro ao adicionar card:", error);
+      alert("Erro ao criar card. Tente novamente.");
+    }
   };
 
   const handleSaveCard = (updates: Partial<Card>) => {
@@ -187,11 +268,23 @@ export default function BoardPage() {
     setSelectedCard({ ...selectedCard, card: { ...selectedCard.card, ...updates } });
   };
 
-  const handleNotificationClick = (n: Notification) => {
+  const handleNotificationClick = async (n: Notification) => {
     if (!n.read) {
-      markAsRead(userId, n.id);
-      setUnreadCount(getUnreadCount(userId));
-      setRecentNotifs(getNotifications(userId).slice(0, 5));
+      try {
+        await fetch("/api/notifications", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ notificationId: n.id }),
+        });
+        
+        // Atualizar contadores
+        setUnreadCount(prev => prev - 1);
+        setRecentNotifs(prev => prev.map(notif => 
+          notif.id === n.id ? { ...notif, read: true } : notif
+        ));
+      } catch (error) {
+        console.error("Erro ao marcar notificação:", error);
+      }
     }
     setShowNotifications(false);
     if (n.actionUrl) router.push(n.actionUrl);
