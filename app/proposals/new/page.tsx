@@ -338,6 +338,11 @@ function NewProposalWizard() {
           type: data.clienteTipo,
         },
 
+        consumption: {
+          monthlyConsumption: data.consumoMensal,
+          monthlyBill: data.contaMensal,
+        },
+
         system: {
           totalPower: calc.potenciaReal,
           monthlyGeneration: calc.geracaoMensal,
