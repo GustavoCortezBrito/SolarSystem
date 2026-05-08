@@ -20,7 +20,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import type { Card, Board } from "@/types/board";
-import { getCompanyClients } from "@/lib/store";
+import type { Client } from "@/types/client";
+import { getClients } from "@/lib/api";
 
 interface CardModalProps {
   card: Card;
@@ -53,7 +54,26 @@ export function CardModal({ card, board, onClose, onSave, onDelete }: CardModalP
   const clientPickerRef = useRef<HTMLDivElement>(null);
 
   // Clientes da empresa
-  const allClients = useMemo(() => getCompanyClients("company-1"), []);
+  const [allClients, setAllClients] = useState<Client[]>([]);
+  const [loadingClients, setLoadingClients] = useState(true);
+
+  useEffect(() => {
+    async function fetchClients() {
+      try {
+        const companyId = localStorage.getItem("companyId");
+        if (companyId) {
+          const clients = await getClients(companyId);
+          setAllClients(clients);
+        }
+      } catch (error) {
+        console.error("Erro ao buscar clientes:", error);
+      } finally {
+        setLoadingClients(false);
+      }
+    }
+    fetchClients();
+  }, []);
+
   const filteredClients = useMemo(
     () =>
       allClients.filter(
@@ -283,7 +303,11 @@ export function CardModal({ card, board, onClose, onSave, onDelete }: CardModalP
 
                           {/* List */}
                           <div className="max-h-56 overflow-y-auto">
-                            {filteredClients.length === 0 ? (
+                            {loadingClients ? (
+                              <p className="px-4 py-6 text-center text-sm text-gray-500">
+                                Carregando clientes...
+                              </p>
+                            ) : filteredClients.length === 0 ? (
                               <p className="px-4 py-6 text-center text-sm text-gray-500">
                                 Nenhum cliente encontrado
                               </p>
