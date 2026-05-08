@@ -46,17 +46,37 @@ export default function ClientsPage() {
   });
 
   useEffect(() => {
-    const storedCompanyId = localStorage.getItem("companyId");
-    const storedUserId = localStorage.getItem("userId");
-    
-    if (storedCompanyId && storedUserId) {
-      setCompanyId(storedCompanyId);
-      setUserId(storedUserId);
-      fetchClients(storedCompanyId);
-    } else {
-      setIsLoading(false);
-      setError("Empresa ou usuário não encontrado");
+    async function init() {
+      try {
+        // Buscar session do NextAuth
+        const sessionRes = await fetch("/api/auth/session");
+        const session = await sessionRes.json();
+        
+        if (!session?.user?.id) {
+          setIsLoading(false);
+          setError("Usuário não autenticado");
+          return;
+        }
+
+        const storedCompanyId = localStorage.getItem("companyId");
+        
+        if (!storedCompanyId) {
+          setIsLoading(false);
+          setError("Empresa não selecionada");
+          return;
+        }
+
+        setCompanyId(storedCompanyId);
+        setUserId(session.user.id);
+        await fetchClients(storedCompanyId);
+      } catch (error) {
+        console.error("Erro ao inicializar:", error);
+        setIsLoading(false);
+        setError("Erro ao carregar dados");
+      }
     }
+    
+    init();
   }, []);
 
   async function fetchClients(companyId: string) {

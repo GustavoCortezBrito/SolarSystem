@@ -7,12 +7,12 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { addProposal, generateProposalId, getCompanyClients } from "@/lib/store";
-import { mockCompanies } from "@/lib/mockAuthData";
 import { getAllModules } from "@/lib/mockModuleData";
 import { getAllInverters } from "@/lib/mockInverterData";
 import { LocationSelector } from "@/components/LocationSelector";
+import { getClients, createProposal } from "@/lib/api";
 import type { Proposal } from "@/types/proposal";
+import type { Client } from "@/types/client";
 
 const ALL_MODULES = getAllModules();
 const ALL_INVERTERS = getAllInverters();
@@ -130,10 +130,46 @@ function NewProposalWizard() {
   const [moduloSearch, setModuloSearch] = useState("");
   const [inversorSearch, setInversorSearch] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [clientes, setClientes] = useState<Client[]>([]);
+  const [companyId, setCompanyId] = useState<string>("");
+  const [userId, setUserId] = useState<string>("");
+  const [loading, setLoading] = useState(true);
 
-  const COMPANY_ID = "company-1";
-  const company = mockCompanies.find((c) => c.id === COMPANY_ID);
-  const clientes = getCompanyClients(COMPANY_ID);
+  // Carregar clientes da API
+  useEffect(() => {
+    async function init() {
+      try {
+        const sessionRes = await fetch("/api/auth/session");
+        const session = await sessionRes.json();
+        
+        if (!session?.user?.id) {
+          alert("Usuário não autenticado");
+          router.push("/login");
+          return;
+        }
+
+        const storedCompanyId = localStorage.getItem("companyId");
+        if (!storedCompanyId) {
+          alert("Empresa não selecionada");
+          router.push("/select-company");
+          return;
+        }
+
+        setCompanyId(storedCompanyId);
+        setUserId(session.user.id);
+
+        // Buscar clientes da API
+        const clientsData = await getClients(storedCompanyId);
+        setClientes(clientsData);
+        setLoading(false);
+      } catch (error) {
+        console.error("Erro ao carregar dados:", error);
+        alert("Erro ao carregar dados");
+        setLoading(false);
+      }
+    }
+    init();
+  }, [router]);
 
   // Pré-selecionar cliente se vier via query param ?clientId=
   useEffect(() => {
@@ -244,109 +280,112 @@ function NewProposalWizard() {
     new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
 
   // ── Submit ──────────────────────────────────────────────────────────────────
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!calc || !moduloSelecionado || !inversorSelecionado || !financeiro) return;
     setSubmitting(true);
 
-    const validUntil = new Date();
-    validUntil.setDate(validUntil.getDate() + data.validadeDias);
+    try {
+      const validUntil = new Date();
+      validUntil.setDate(validUntil.getDate() + data.validadeDias);
 
-    const paymentOptions = [];
-    // À vista sempre incluso
-    paymentOptions.push({
-      name: "À vista",
-      installments: 1,
-      installmentValue: totalCusto * (1 - data.descontoAVista / 100),
-      totalValue: totalCusto * (1 - data.descontoAVista / 100),
-      discount: data.descontoAVista,
-    });
-    if (data.parcelamento12) {
+      const paymentOptions = [];
+      // À vista sempre incluso
       paymentOptions.push({
-        name: "Parcelado em 12x",
-        installments: 12,
-        installmentValue: totalCusto / 12,
-        totalValue: totalCusto,
+        name: "À vista",
+        installments: 1,
+        installmentValue: totalCusto * (1 - data.descontoAVista / 100),
+        totalValue: totalCusto * (1 - data.descontoAVista / 100),
+        discount: data.descontoAVista,
       });
-    }
-    if (data.parcelamento24) {
-      paymentOptions.push({
-        name: "Parcelado em 24x",
-        installments: 24,
-        installmentValue: totalCusto / 24,
-        totalValue: totalCusto,
-      });
-    }
-    if (data.parcelamento48) {
-      paymentOptions.push({
-        name: "Parcelado em 48x",
-        installments: 48,
-        installmentValue: totalCusto / 48,
-        totalValue: totalCusto,
-      });
-    }
+      if (data.parcelamento12) {
+        paymentOptions.push({
+          name: "Parcelado em 12x",
+          installments: 12,
+          installmentValue: totalCusto / 12,
+          totalValue: totalCusto,
+        });
+      }
+      if (data.parcelamento24) {
+        paymentOptions.push({
+          name: "Parcelado em 24x",
+          installments: 24,
+          installmentValue: totalCusto / 24,
+          totalValue: totalCusto,
+        });
+      }
+      if (data.parcelamento48) {
+        paymentOptions.push({
+          name: "Parcelado em 48x",
+          installments: 48,
+          installmentValue: totalCusto / 48,
+          totalValue: totalCusto,
+        });
+      }
 
-    const newProposal: Proposal = {
-      id: generateProposalId(),
-      clientId: data.clienteExistenteId || `new-${Date.now()}`,
-      companyId: COMPANY_ID,
-      createdBy: "user-1",
-      status: "GERADA",
+      const newProposal = {
+        clientId: data.clienteExistenteId || undefined,
+        companyId: companyId,
+        createdBy: userId,
+        status: "GERADA" as const,
 
-      client: {
-        name: data.clienteNome,
-        email: data.clienteEmail || undefined,
-        phone: data.clienteTelefone,
-        address: data.clienteEndereco || undefined,
-        city: data.clienteCidade,
-        state: data.clienteEstadoSigla,
-        type: data.clienteTipo,
-      },
-
-      system: {
-        totalPower: calc.potenciaReal,
-        monthlyGeneration: calc.geracaoMensal,
-        annualGeneration: calc.geracaoAnual,
-        modules: {
-          id: moduloSelecionado.id,
-          manufacturer: moduloSelecionado.manufacturer,
-          model: moduloSelecionado.model,
-          power: moduloSelecionado.power,
-          quantity: calc.qtdModulos,
+        client: {
+          name: data.clienteNome,
+          email: data.clienteEmail || undefined,
+          phone: data.clienteTelefone,
+          address: data.clienteEndereco || undefined,
+          city: data.clienteCidade,
+          state: data.clienteEstadoSigla,
+          type: data.clienteTipo,
         },
-        inverter: {
-          id: inversorSelecionado.id,
-          manufacturer: inversorSelecionado.manufacturer,
-          model: inversorSelecionado.model,
-          power: inversorSelecionado.nominalPower,
-          quantity: 1,
+
+        system: {
+          totalPower: calc.potenciaReal,
+          monthlyGeneration: calc.geracaoMensal,
+          annualGeneration: calc.geracaoAnual,
+          modules: {
+            id: moduloSelecionado.id,
+            manufacturer: moduloSelecionado.manufacturer,
+            model: moduloSelecionado.model,
+            power: moduloSelecionado.power,
+            quantity: calc.qtdModulos,
+          },
+          inverter: {
+            id: inversorSelecionado.id,
+            manufacturer: inversorSelecionado.manufacturer,
+            model: inversorSelecionado.model,
+            power: inversorSelecionado.nominalPower,
+            quantity: 1,
+          },
         },
-      },
 
-      financial: {
-        equipmentCost: data.custoEquipamentos,
-        installationCost: data.custoInstalacao,
-        projectCost: data.custoProjeto,
-        totalCost: totalCusto,
-        pricePerWp: financeiro.precoWp,
-        currentMonthlyBill: data.contaMensal,
-        newMonthlyBill: TAXA_MINIMA_MENSAL,
-        monthlySavings: financeiro.economiaMensal,
-        annualSavings: financeiro.economiaAnual,
-        savings25Years: financeiro.economia25Anos,
-        paybackMonths: financeiro.paybackMeses,
-        paybackYears: financeiro.paybackAnos,
-        roi: financeiro.roi,
-        paymentOptions,
-      },
+        financial: {
+          equipmentCost: data.custoEquipamentos,
+          installationCost: data.custoInstalacao,
+          projectCost: data.custoProjeto,
+          totalCost: totalCusto,
+          pricePerWp: financeiro.precoWp,
+          currentMonthlyBill: data.contaMensal,
+          newMonthlyBill: TAXA_MINIMA_MENSAL,
+          monthlySavings: financeiro.economiaMensal,
+          annualSavings: financeiro.economiaAnual,
+          savings25Years: financeiro.economia25Anos,
+          paybackMonths: financeiro.paybackMeses,
+          paybackYears: financeiro.paybackAnos,
+          roi: financeiro.roi,
+          paymentOptions,
+        },
 
-      validUntil: validUntil.toISOString(),
-      notes: data.observacoes || undefined,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+        validUntil: validUntil.toISOString(),
+        notes: data.observacoes || undefined,
+      };
 
-    const created = addProposal(newProposal);
-    router.push(`/proposals/${created.id}`);
+      const created = await createProposal(newProposal);
+      router.push(`/proposals/${created.id}`);
+    } catch (error) {
+      console.error("Erro ao criar proposta:", error);
+      alert("Erro ao criar proposta. Tente novamente.");
+      setSubmitting(false);
+    }
   };
 
   const steps = [
@@ -355,6 +394,17 @@ function NewProposalWizard() {
     { n: 3, label: "Equipamentos", icon: Package },
     { n: 4, label: "Valores", icon: DollarSign },
   ];
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-primary-50 to-blue-50 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 animate-spin text-primary-600 mx-auto mb-4" />
+          <p className="text-gray-600">Carregando...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 to-blue-50">
