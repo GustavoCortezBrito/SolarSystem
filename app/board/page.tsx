@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import {
   ArrowLeft, Users, LogOut, UserCircle, Building2, Bell,
-  ChevronDown, Package, Battery, Zap, Sun, Upload,
+  ChevronDown, Package, Battery, Zap, Sun, Upload, Tag,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -13,6 +13,7 @@ import { Column } from "@/components/board/Column";
 import { AddColumnButton } from "@/components/board/AddColumnButton";
 import { CardModal } from "@/components/board/CardModal";
 import TrelloImportModal from "@/components/board/TrelloImportModal";
+import ManageLabelsModal from "@/components/board/ManageLabelsModal";
 import type { Board, Column as ColumnType, Card } from "@/types/board";
 
 export default function BoardPage() {
@@ -31,6 +32,7 @@ export default function BoardPage() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [recentNotifs, setRecentNotifs] = useState<Notification[]>([]);
   const [showTrelloImport, setShowTrelloImport] = useState(false);
+  const [showManageLabels, setShowManageLabels] = useState(false);
   const notificationsRef = useRef<HTMLDivElement>(null);
   const cadastrosRef = useRef<HTMLDivElement>(null);
   const [filters, setFilters] = useState({
@@ -394,6 +396,16 @@ export default function BoardPage() {
             </div>
 
             <div className="flex items-center space-x-2">
+              {/* Gerenciar Tags */}
+              <button
+                onClick={() => setShowManageLabels(true)}
+                className="flex items-center space-x-1.5 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                title="Gerenciar tags"
+              >
+                <Tag className="w-4 h-4" />
+                <span>Tags</span>
+              </button>
+
               {/* Importar do Trello */}
               <button
                 onClick={() => setShowTrelloImport(true)}
@@ -633,6 +645,20 @@ export default function BoardPage() {
           onSuccess={() => {
             setShowTrelloImport(false);
             window.location.reload(); // Recarregar board após importação
+          }}
+        />
+      )}
+
+      {/* ── Manage Labels Modal ──────────────────────────────────────────────── */}
+      {showManageLabels && board && (
+        <ManageLabelsModal
+          currentLabels={board.availableLabels || []}
+          onClose={() => setShowManageLabels(false)}
+          onSave={async (newLabels) => {
+            // Atualizar labels no board
+            setBoard({ ...board, availableLabels: newLabels });
+            setShowManageLabels(false);
+            // TODO: Salvar no backend
           }}
         />
       )}
