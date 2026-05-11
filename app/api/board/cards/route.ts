@@ -102,7 +102,10 @@ export async function PUT(request: NextRequest) {
     if (clientId !== undefined) updateData.clientId = clientId;
     if (clientName !== undefined) updateData.clientName = clientName;
     if (tags !== undefined) updateData.tags = tags;
-    if (dueDate !== undefined) updateData.dueDate = dueDate ? new Date(dueDate) : null;
+    if (dueDate !== undefined) {
+      // Se dueDate for string vazia, salvar como null
+      updateData.dueDate = dueDate && dueDate.trim() !== "" ? new Date(dueDate) : null;
+    }
 
     const card = await prisma.card.update({
       where: { id: cardId },

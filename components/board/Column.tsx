@@ -259,7 +259,7 @@ export function Column({
       </div>
 
       {/* Cards */}
-      <div className="space-y-2 flex-1 overflow-y-auto scrollbar-hide">
+      <div className="space-y-2 flex-1 overflow-y-auto pr-1" style={{ maxHeight: 'calc(100vh - 350px)' }}>
         {column.cards.map((card, index) => (
           <div key={card.id}>
             {dragOverIndex === index && (
