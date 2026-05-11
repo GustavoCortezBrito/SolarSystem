@@ -12,16 +12,33 @@ interface CardProps {
 }
 
 export function Card({ card, onClick, members }: CardProps) {
+  // Cores sólidas estilo Trello
   const labelColors: Record<string, string> = {
-    Residencial: "bg-green-100 text-green-800",
-    Comercial: "bg-blue-100 text-blue-800",
-    Industrial: "bg-purple-100 text-purple-800",
-    Urgente: "bg-red-100 text-red-800",
-    Híbrido: "bg-yellow-100 text-yellow-800",
-    "On-Grid": "bg-cyan-100 text-cyan-800",
-    "Off-Grid": "bg-orange-100 text-orange-800",
-    "Aguardando Cliente": "bg-gray-100 text-gray-800",
-    "Revisão Técnica": "bg-indigo-100 text-indigo-800",
+    Residencial: "bg-green-600",
+    Comercial: "bg-blue-600",
+    Industrial: "bg-purple-600",
+    Urgente: "bg-red-600",
+    Híbrido: "bg-yellow-600",
+    "On-Grid": "bg-cyan-600",
+    "Off-Grid": "bg-orange-600",
+    "Aguardando Cliente": "bg-gray-600",
+    "Revisão Técnica": "bg-indigo-600",
+    // Tags do Trello importadas
+    Lucas: "bg-green-600",
+    "PROJ CANCELADO?": "bg-red-900",
+    "Atenção - Bucha": "bg-red-700",
+    Diogo: "bg-blue-600",
+    Leticia: "bg-pink-600",
+    PAGOS: "bg-yellow-600",
+    Urgencia: "bg-orange-600",
+    reprova: "bg-pink-500",
+    "2° REPROVA": "bg-green-400",
+    INSTALADO: "bg-blue-400",
+    "AUMENTO DE CARGA": "bg-black",
+    ver: "bg-green-800",
+    PRIORIDADEEE: "bg-yellow-800",
+    LOCALIZAÇÃO: "bg-sky-800",
+    PROCURAÇÃO: "bg-lime-800",
   };
 
   const priorityColors = {
@@ -43,17 +60,22 @@ export function Card({ card, onClick, members }: CardProps) {
       {/* Labels */}
       {card.labels && card.labels.length > 0 && (
         <div className="flex flex-wrap gap-1 mb-2">
-          {card.labels.slice(0, 4).map((label, index) => (
+          {card.labels.slice(0, 5).map((label, index) => (
             <span
               key={index}
-              className={`h-2 w-10 rounded-full ${
-                labelColors[label]?.replace('text-', 'bg-').split(' ')[0] || "bg-gray-500"
+              className={`h-2 rounded-full ${
+                labelColors[label] || "bg-slate-500"
               }`}
+              style={{ width: '40px' }}
               title={label}
             ></span>
           ))}
-          {card.labels.length > 4 && (
-            <span className="h-2 w-6 rounded-full bg-white/20" title={`+${card.labels.length - 4} mais`}></span>
+          {card.labels.length > 5 && (
+            <span 
+              className="h-2 rounded-full bg-white/20" 
+              style={{ width: '24px' }}
+              title={`+${card.labels.length - 5} mais`}
+            ></span>
           )}
         </div>
       )}

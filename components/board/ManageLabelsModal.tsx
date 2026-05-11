@@ -184,8 +184,8 @@ export default function ManageLabelsModal({
                       ) : (
                         <>
                           <span
-                            className={`flex-1 px-3 py-1.5 text-sm font-medium rounded ${
-                              labelColors[label] || "bg-gray-200 text-gray-800"
+                            className={`flex-1 px-3 py-2 text-sm font-medium rounded text-white ${
+                              labelColors[label] || "bg-gray-600"
                             }`}
                           >
                             {label}

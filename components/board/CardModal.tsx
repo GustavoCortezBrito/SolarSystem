@@ -136,15 +136,31 @@ export function CardModal({ card, board, onClose, onSave, onDelete }: CardModalP
     setSelectedAssignees((prev) => prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId]);
 
   const labelColors: Record<string, string> = {
-    Residencial: "bg-green-100 text-green-800 hover:bg-green-200",
-    Comercial: "bg-blue-100 text-blue-800 hover:bg-blue-200",
-    Industrial: "bg-purple-100 text-purple-800 hover:bg-purple-200",
-    Urgente: "bg-red-100 text-red-800 hover:bg-red-200",
-    Híbrido: "bg-yellow-100 text-yellow-800 hover:bg-yellow-200",
-    "On-Grid": "bg-cyan-100 text-cyan-800 hover:bg-cyan-200",
-    "Off-Grid": "bg-orange-100 text-orange-800 hover:bg-orange-200",
-    "Aguardando Cliente": "bg-gray-100 text-gray-800 hover:bg-gray-200",
-    "Revisão Técnica": "bg-indigo-100 text-indigo-800 hover:bg-indigo-200",
+    Residencial: "bg-green-600 text-white hover:bg-green-700",
+    Comercial: "bg-blue-600 text-white hover:bg-blue-700",
+    Industrial: "bg-purple-600 text-white hover:bg-purple-700",
+    Urgente: "bg-red-600 text-white hover:bg-red-700",
+    Híbrido: "bg-yellow-600 text-white hover:bg-yellow-700",
+    "On-Grid": "bg-cyan-600 text-white hover:bg-cyan-700",
+    "Off-Grid": "bg-orange-600 text-white hover:bg-orange-700",
+    "Aguardando Cliente": "bg-gray-600 text-white hover:bg-gray-700",
+    "Revisão Técnica": "bg-indigo-600 text-white hover:bg-indigo-700",
+    // Tags do Trello
+    Lucas: "bg-green-600 text-white hover:bg-green-700",
+    "PROJ CANCELADO?": "bg-red-900 text-white hover:bg-red-950",
+    "Atenção - Bucha": "bg-red-700 text-white hover:bg-red-800",
+    Diogo: "bg-blue-600 text-white hover:bg-blue-700",
+    Leticia: "bg-pink-600 text-white hover:bg-pink-700",
+    PAGOS: "bg-yellow-600 text-white hover:bg-yellow-700",
+    Urgencia: "bg-orange-600 text-white hover:bg-orange-700",
+    reprova: "bg-pink-500 text-white hover:bg-pink-600",
+    "2° REPROVA": "bg-green-400 text-white hover:bg-green-500",
+    INSTALADO: "bg-blue-400 text-white hover:bg-blue-500",
+    "AUMENTO DE CARGA": "bg-black text-white hover:bg-gray-900",
+    ver: "bg-green-800 text-white hover:bg-green-900",
+    PRIORIDADEEE: "bg-yellow-800 text-white hover:bg-yellow-900",
+    LOCALIZAÇÃO: "bg-sky-800 text-white hover:bg-sky-900",
+    PROCURAÇÃO: "bg-lime-800 text-white hover:bg-lime-900",
   };
 
   const priorityOptions = [
