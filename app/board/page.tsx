@@ -378,19 +378,19 @@ export default function BoardPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-blue-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
       {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="px-6 py-3">
+      <header className="bg-black/30 backdrop-blur-sm border-b border-white/10 sticky top-0 z-10">
+        <div className="px-4 py-2">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <Link href="/" className="text-gray-600 hover:text-primary-600 transition-colors">
+            <div className="flex items-center space-x-3">
+              <Link href="/" className="text-white/70 hover:text-white transition-colors">
                 <ArrowLeft className="w-5 h-5" />
               </Link>
               <div>
-                <h1 className="text-xl font-bold text-gray-900">{board.title}</h1>
-                <p className="text-xs text-gray-500">
-                  {board.columns.length} colunas • {totalCards} cards
+                <h1 className="text-lg font-bold text-white">{board.title}</h1>
+                <p className="text-xs text-white/50">
+                  {board.columns.length} listas • {totalCards} cards
                 </p>
               </div>
             </div>
@@ -399,7 +399,7 @@ export default function BoardPage() {
               {/* Gerenciar Tags */}
               <button
                 onClick={() => setShowManageLabels(true)}
-                className="flex items-center space-x-1.5 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                className="flex items-center space-x-1.5 px-3 py-1.5 text-sm text-white/80 hover:bg-white/10 rounded transition-colors"
                 title="Gerenciar tags"
               >
                 <Tag className="w-4 h-4" />
@@ -409,24 +409,24 @@ export default function BoardPage() {
               {/* Importar do Trello */}
               <button
                 onClick={() => setShowTrelloImport(true)}
-                className="flex items-center space-x-1.5 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                className="flex items-center space-x-1.5 px-3 py-1.5 text-sm text-white/80 hover:bg-white/10 rounded transition-colors"
                 title="Importar board do Trello"
               >
                 <Upload className="w-4 h-4" />
-                <span>Importar Trello</span>
+                <span>Importar</span>
               </button>
 
               {/* Membros */}
               <Link href="/team"
-                className="flex items-center space-x-1.5 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
+                className="flex items-center space-x-1.5 px-3 py-1.5 text-sm text-white/80 hover:bg-white/10 rounded transition-colors">
                 <Users className="w-4 h-4" />
-                <span>{board.members.length} membros</span>
+                <span>{board.members.length}</span>
               </Link>
 
               {/* Notificações */}
               <div className="relative" ref={notificationsRef}>
                 <button onClick={() => setShowNotifications(!showNotifications)}
-                  className="relative p-1.5 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
+                  className="relative p-1.5 text-white/80 hover:bg-white/10 rounded transition-colors">
                   <Bell className="w-5 h-5" />
                   {unreadCount > 0 && (
                     <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center font-semibold">
@@ -574,37 +574,9 @@ export default function BoardPage() {
         </div>
       </header>
 
-      {/* ── Filtros ─────────────────────────────────────────────────────────── */}
-      {showFilters && (
-        <div className="bg-white border-b border-gray-200">
-          <div className="px-6 py-4 grid grid-cols-1 md:grid-cols-4 gap-4">
-            {[
-              { label: "Responsável", key: "assignee", options: [{ value: "ALL", label: "Todos" }, ...board.members.map((m) => ({ value: m.id, label: m.name }))] },
-              { label: "Prioridade", key: "priority", options: [{ value: "ALL", label: "Todas" }, { value: "high", label: "Alta" }, { value: "medium", label: "Média" }, { value: "low", label: "Baixa" }] },
-              { label: "Vencimento", key: "dueDate", options: [{ value: "ALL", label: "Todos" }, { value: "OVERDUE", label: "Atrasados" }, { value: "TODAY", label: "Hoje" }, { value: "WEEK", label: "Esta semana" }] },
-            ].map((f) => (
-              <div key={f.key}>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{f.label}</label>
-                <select value={(filters as any)[f.key]}
-                  onChange={(e) => setFilters({ ...filters, [f.key]: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500">
-                  {f.options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                </select>
-              </div>
-            ))}
-            <div className="flex items-end">
-              <button onClick={() => setFilters({ assignee: "ALL", priority: "ALL", dueDate: "ALL", labels: [] })}
-                className="w-full px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
-                Limpar Filtros
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* ── Board ───────────────────────────────────────────────────────────── */}
-      <div className="p-6 overflow-x-auto">
-        <div className="flex space-x-4 pb-4">
+      <div className="p-4 overflow-x-auto h-[calc(100vh-60px)]">
+        <div className="flex space-x-3 pb-4 h-full">
           {filteredBoard.columns.map((column) => (
             <Column
               key={column.id}

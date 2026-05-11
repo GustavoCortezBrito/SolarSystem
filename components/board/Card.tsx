@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Calendar, MessageSquare, Paperclip, AlertCircle, UserCircle } from "lucide-react";
+import { Calendar, MessageSquare, Paperclip, AlignLeft } from "lucide-react";
 import type { Card as CardType, User } from "@/types/board";
 
 interface CardProps {
@@ -36,74 +36,63 @@ export function Card({ card, onClick, members }: CardProps) {
   return (
     <motion.div
       layout
-      whileHover={{ scale: 1.02 }}
+      whileHover={{ scale: 1.01 }}
       onClick={onClick}
-      className="bg-white p-3 rounded-lg shadow-sm border border-gray-200 cursor-pointer hover:shadow-md transition-all group"
+      className="bg-slate-700 p-2 rounded-lg shadow-sm border border-white/5 cursor-pointer hover:border-white/20 transition-all group"
     >
       {/* Labels */}
       {card.labels && card.labels.length > 0 && (
         <div className="flex flex-wrap gap-1 mb-2">
-          {card.labels.map((label, index) => (
+          {card.labels.slice(0, 4).map((label, index) => (
             <span
               key={index}
-              className={`px-2 py-0.5 text-xs font-medium rounded ${
-                labelColors[label] || "bg-gray-100 text-gray-800"
+              className={`h-2 w-10 rounded-full ${
+                labelColors[label]?.replace('text-', 'bg-').split(' ')[0] || "bg-gray-500"
               }`}
-            >
-              {label}
-            </span>
+              title={label}
+            ></span>
           ))}
+          {card.labels.length > 4 && (
+            <span className="h-2 w-6 rounded-full bg-white/20" title={`+${card.labels.length - 4} mais`}></span>
+          )}
         </div>
       )}
 
       {/* Title */}
-      <h4 className="text-sm font-medium text-gray-900 mb-1">{card.title}</h4>
-
-      {/* Description Preview */}
-      {card.description && (
-        <p className="text-xs text-gray-600 mb-2 line-clamp-2">{card.description}</p>
-      )}
-
-      {/* Cliente vinculado */}
-      {card.clientName && (
-        <div className="flex items-center gap-1.5 mb-2 px-2 py-1 bg-primary-50 border border-primary-100 rounded-md">
-          <UserCircle className="w-3.5 h-3.5 text-primary-500 flex-shrink-0" />
-          <span className="text-xs font-medium text-primary-700 truncate">{card.clientName}</span>
-        </div>
-      )}
+      <h4 className="text-sm text-white mb-2 leading-snug">{card.title}</h4>
 
       {/* Metadata */}
-      <div className="flex items-center justify-between mt-2">
+      <div className="flex items-center justify-between">
         <div className="flex items-center space-x-2">
-          {card.priority && (
-            <div className={priorityColors[card.priority]}>
-              <AlertCircle className="w-4 h-4" />
-            </div>
-          )}
           {card.dueDate && (
             <div
-              className={`flex items-center space-x-1 text-xs ${
-                isOverdue ? "text-red-600 font-semibold" : "text-gray-600"
+              className={`flex items-center space-x-1 text-xs px-1.5 py-0.5 rounded ${
+                isOverdue ? "bg-red-500/20 text-red-300" : "bg-white/10 text-white/60"
               }`}
             >
               <Calendar className="w-3 h-3" />
               <span>
                 {new Date(card.dueDate).toLocaleDateString("pt-BR", {
-                  day: "2-digit",
+                  day: "numeric",
                   month: "short",
                 })}
               </span>
             </div>
           )}
+          {card.description && (
+            <div className="text-white/40">
+              <AlignLeft className="w-3.5 h-3.5" />
+            </div>
+          )}
           {card.comments && card.comments.length > 0 && (
-            <div className="flex items-center space-x-1 text-xs text-gray-600">
-              <MessageSquare className="w-3 h-3" />
+            <div className="flex items-center space-x-1 text-xs text-white/60">
+              <MessageSquare className="w-3.5 h-3.5" />
               <span>{card.comments.length}</span>
             </div>
           )}
           {card.attachments && card.attachments.length > 0 && (
-            <div className="flex items-center space-x-1 text-xs text-gray-600">
-              <Paperclip className="w-3 h-3" />
+            <div className="flex items-center space-x-1 text-xs text-white/60">
+              <Paperclip className="w-3.5 h-3.5" />
               <span>{card.attachments.length}</span>
             </div>
           )}
@@ -111,19 +100,19 @@ export function Card({ card, onClick, members }: CardProps) {
 
         {/* Assignees */}
         {card.assignees && card.assignees.length > 0 && (
-          <div className="flex items-center -space-x-2">
-            {getAssignedMembers().slice(0, 3).map((member) => (
+          <div className="flex items-center -space-x-1">
+            {getAssignedMembers().slice(0, 2).map((member) => (
               <div
                 key={member.id}
-                className="w-6 h-6 rounded-full bg-primary-500 flex items-center justify-center text-white text-xs font-medium border-2 border-white"
+                className="w-6 h-6 rounded-full bg-primary-500 flex items-center justify-center text-white text-xs font-medium border-2 border-slate-700"
                 title={member.name}
               >
                 {member.name.charAt(0).toUpperCase()}
               </div>
             ))}
-            {card.assignees.length > 3 && (
-              <div className="w-6 h-6 rounded-full bg-gray-400 flex items-center justify-center text-white text-xs font-medium border-2 border-white">
-                +{card.assignees.length - 3}
+            {card.assignees.length > 2 && (
+              <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center text-white text-xs font-medium border-2 border-slate-700">
+                +{card.assignees.length - 2}
               </div>
             )}
           </div>
