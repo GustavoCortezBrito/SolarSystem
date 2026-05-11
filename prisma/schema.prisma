@@ -35,6 +35,7 @@ model User {
   cards         Card[]
   columns       Column[]
   calculations  Calculation[]
+  files         FileUpload[]
 
   @@map("users")
 }
@@ -92,6 +93,23 @@ model Company {
   zipCode   String?
   logo      String?
   
+  // Plano e limites SaaS
+  plan              String   @default("STARTER") // STARTER, PROFESSIONAL, ENTERPRISE
+  maxUsers          Int      @default(3)
+  maxClients        Int      @default(1000)
+  maxProjects       Int      @default(500)
+  storageQuotaGB    Float    @default(5.0)
+  
+  // Uso atual (atualizado periodicamente)
+  storageUsedGB     Float    @default(0.0)
+  
+  // Billing
+  subscriptionId    String?
+  subscriptionStatus String? @default("trial") // trial, active, past_due, canceled
+  trialEndsAt       DateTime?
+  billingCycle      String?  @default("monthly") // monthly, annual
+  nextBillingDate   DateTime?
+  
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -100,6 +118,7 @@ model Company {
   clients   Client[]
   proposals Proposal[]
   boards    Board[]
+  files     FileUpload[]
 
   @@map("companies")
 }
@@ -430,4 +449,38 @@ model Calculation {
   @@index([clientId])
   @@index([createdBy])
   @@map("calculations")
+}
+
+
+// ─── CONTROLE DE ARQUIVOS E STORAGE ───────────────────────────────────────────
+
+model FileUpload {
+  id          String   @id @default(cuid())
+  companyId   String
+  userId      String
+  
+  // Arquivo
+  fileName    String
+  fileSize    Int      // bytes
+  fileSizeMB  Float    // megabytes (calculado)
+  mimeType    String
+  storagePath String   // caminho no Supabase Storage
+  storageUrl  String?  // URL pública (se aplicável)
+  
+  // Vinculação (a que entidade pertence)
+  entityType  String?  // CLIENT, PROJECT, PROPOSAL, CARD, IMPORT
+  entityId    String?
+  
+  // Metadata
+  uploadedAt  DateTime @default(now())
+  deletedAt   DateTime?
+  
+  // Relações
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id])
+  
+  @@index([companyId])
+  @@index([entityType, entityId])
+  @@index([uploadedAt])
+  @@map("file_uploads")
 }

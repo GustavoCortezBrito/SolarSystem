@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import {
   ArrowLeft, Users, LogOut, UserCircle, Building2, Bell,
-  ChevronDown, Package, Battery, Zap, Sun,
+  ChevronDown, Package, Battery, Zap, Sun, Upload,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -12,6 +12,7 @@ import type { Notification } from "@/types/notification";
 import { Column } from "@/components/board/Column";
 import { AddColumnButton } from "@/components/board/AddColumnButton";
 import { CardModal } from "@/components/board/CardModal";
+import TrelloImportModal from "@/components/board/TrelloImportModal";
 import type { Board, Column as ColumnType, Card } from "@/types/board";
 
 export default function BoardPage() {
@@ -29,6 +30,7 @@ export default function BoardPage() {
   const [showCadastros, setShowCadastros] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [recentNotifs, setRecentNotifs] = useState<Notification[]>([]);
+  const [showTrelloImport, setShowTrelloImport] = useState(false);
   const notificationsRef = useRef<HTMLDivElement>(null);
   const cadastrosRef = useRef<HTMLDivElement>(null);
   const [filters, setFilters] = useState({
@@ -392,6 +394,16 @@ export default function BoardPage() {
             </div>
 
             <div className="flex items-center space-x-2">
+              {/* Importar do Trello */}
+              <button
+                onClick={() => setShowTrelloImport(true)}
+                className="flex items-center space-x-1.5 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                title="Importar board do Trello"
+              >
+                <Upload className="w-4 h-4" />
+                <span>Importar Trello</span>
+              </button>
+
               {/* Membros */}
               <Link href="/team"
                 className="flex items-center space-x-1.5 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
@@ -609,6 +621,18 @@ export default function BoardPage() {
           onDelete={() => {
             handleDeleteCard(selectedCard.columnId, selectedCard.card.id);
             setSelectedCard(null);
+          }}
+        />
+      )}
+
+      {/* ── Trello Import Modal ─────────────────────────────────────────────── */}
+      {showTrelloImport && companyId && (
+        <TrelloImportModal
+          companyId={companyId}
+          onClose={() => setShowTrelloImport(false)}
+          onSuccess={() => {
+            setShowTrelloImport(false);
+            window.location.reload(); // Recarregar board após importação
           }}
         />
       )}
