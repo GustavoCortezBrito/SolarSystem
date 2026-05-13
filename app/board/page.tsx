@@ -396,7 +396,6 @@ export default function BoardPage() {
             </div>
 
             <div className="flex items-center gap-1">
-            <div className="flex items-center gap-1">
               {/* Gerenciar Tags */}
               <button
                 onClick={() => setShowManageLabels(true)}
