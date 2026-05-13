@@ -483,13 +483,13 @@ export default function BoardPage() {
 
               {/* Clientes */}
               <Link href="/clients"
-                className="px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
+                className="px-3 py-1.5 text-sm text-gray-900 hover:bg-gray-100 rounded-lg transition-colors font-medium">
                 Clientes
               </Link>
 
               {/* Propostas */}
               <Link href="/proposals"
-                className="px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
+                className="px-3 py-1.5 text-sm text-gray-900 hover:bg-gray-100 rounded-lg transition-colors font-medium">
                 Propostas
               </Link>
 
@@ -503,7 +503,7 @@ export default function BoardPage() {
               <div className="relative" ref={cadastrosRef}
                 onMouseEnter={() => setShowCadastros(true)}
                 onMouseLeave={() => setShowCadastros(false)}>
-                <button className="flex items-center space-x-1 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
+                <button className="flex items-center space-x-1 px-3 py-1.5 text-sm text-gray-900 font-medium hover:bg-gray-100 rounded-lg transition-colors">
                   <span>Cadastros</span>
                   <ChevronDown className="w-3 h-3" />
                 </button>
@@ -526,7 +526,7 @@ export default function BoardPage() {
 
               {/* Filtros */}
               <button onClick={() => setShowFilters(!showFilters)}
-                className="px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors relative">
+                className="px-3 py-1.5 text-sm text-gray-900 font-medium hover:bg-gray-100 rounded-lg transition-colors relative">
                 Filtros
                 {activeFiltersCount > 0 && (
                   <span className="absolute -top-1 -right-1 w-4 h-4 bg-primary-600 text-white text-[10px] rounded-full flex items-center justify-center">
