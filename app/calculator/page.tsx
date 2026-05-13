@@ -69,6 +69,7 @@ export default function CalculatorPage() {
   const [selectedPanelPower, setSelectedPanelPower] = useState<number>(550);
   const [systemType, setSystemType] = useState<"on-grid" | "off-grid" | "hybrid">("on-grid");
   const [hasBattery, setHasBattery] = useState(false);
+  const [calculationMode, setCalculationMode] = useState<"conservative" | "balanced" | "optimistic">("balanced");
   
   // Equipamentos disponíveis
   const [modules, setModules] = useState<any[]>([]);
@@ -119,31 +120,41 @@ export default function CalculatorPage() {
     // 1. Consumo diário (kWh/dia)
     const dailyConsumption = consumption / 30;
     
-    // 2. Potência do sistema (kWp)
+    // 2. Eficiência do sistema baseada no modo de cálculo
+    // Conservador: 75% (mais perdas consideradas)
+    // Balanceado: 80% (padrão da indústria)
+    // Otimista: 85% (condições ideais)
+    const systemEfficiency = calculationMode === "conservative" ? 0.75 :
+                            calculationMode === "optimistic" ? 0.85 : 0.80;
+    
+    // 3. Potência do sistema (kWp)
     // Fórmula: Potência = (Consumo diário / Irradiação solar) / Eficiência
-    const systemEfficiency = 0.80; // 80% (perdas de cabeamento, sujeira, temperatura)
     const systemPowerKWp = (dailyConsumption / irradiation) / systemEfficiency;
     
-    // 3. Número de painéis
+    // 4. Número de painéis
     const panelPowerKWp = selectedPanelPower / 1000;
     const numberOfPanels = Math.ceil(systemPowerKWp / panelPowerKWp);
     
-    // 4. Potência real do sistema (ajustada)
+    // 5. Potência real do sistema (ajustada)
     const actualSystemPowerKWp = numberOfPanels * panelPowerKWp;
     
-    // 5. Geração mensal e anual (kWh)
+    // 6. Geração mensal e anual (kWh)
     const dailyGeneration = actualSystemPowerKWp * irradiation * systemEfficiency;
     const monthlyGeneration = dailyGeneration * 30;
     const annualGeneration = dailyGeneration * 365;
     
-    // 6. Inversor recomendado (1.0 a 1.2x a potência dos painéis)
-    const inverterPowerKW = actualSystemPowerKWp * 1.1;
+    // 7. Inversor recomendado
+    // Conservador: 1.0x (sem margem)
+    // Balanceado: 1.1x (10% de margem)
+    // Otimista: 1.2x (20% de margem)
+    const inverterMultiplier = calculationMode === "conservative" ? 1.0 :
+                               calculationMode === "optimistic" ? 1.2 : 1.1;
+    const inverterPowerKW = actualSystemPowerKWp * inverterMultiplier;
     const recommendedInverter = inverters.find(
       inv => inv.nominalPower >= inverterPowerKW * 1000 && inv.nominalPower <= inverterPowerKW * 1000 * 1.3
     );
     
-    // 7. Custo ESTIMADO (apenas referência)
-    // Custo médio: R$ 4.000 a R$ 5.500 por kWp instalado
+    // 8. Custo ESTIMADO (apenas referência)
     const costPerKWp = propertyType === "residential" ? 4500 : 
                        propertyType === "commercial" ? 4200 : 4000;
     let estimatedSystemCost = actualSystemPowerKWp * costPerKWp;
@@ -157,15 +168,13 @@ export default function CalculatorPage() {
       }
     }
     
-    // 8. Área necessária
-    // Painel típico: 2.3m² (550Wp) ou 2.0m² (450Wp)
+    // 9. Área necessária
     const panelAreaM2 = selectedPanelPower >= 500 ? 2.3 : 2.0;
     const requiredAreaM2 = numberOfPanels * panelAreaM2 * 1.2; // +20% para espaçamento
     
-    // 9. Impacto ambiental
-    // 1 kWh evita ~0.5 kg de CO2
+    // 10. Impacto ambiental
     const co2AvoidedKgYear = annualGeneration * 0.5;
-    const treesEquivalent = Math.round(co2AvoidedKgYear / 21); // 1 árvore absorve ~21kg CO2/ano
+    const treesEquivalent = Math.round(co2AvoidedKgYear / 21);
 
     const calculationResult: CalculationResult = {
       monthlyConsumption: consumption,
@@ -548,6 +557,53 @@ export default function CalculatorPage() {
                 <Sun className="w-5 h-5 text-blue-600" />
                 Configuração do Sistema
               </h2>
+              
+              {/* Modo de Cálculo */}
+              <div className="mb-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-200">
+                <label className="block text-sm font-semibold text-gray-900 mb-3">
+                  Modo de Cálculo
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { value: "conservative", label: "Conservador", desc: "Mais painéis", color: "blue" },
+                    { value: "balanced", label: "Balanceado", desc: "Recomendado", color: "purple" },
+                    { value: "optimistic", label: "Otimista", desc: "Menos painéis", color: "green" },
+                  ].map((mode) => (
+                    <button key={mode.value} type="button"
+                      onClick={() => setCalculationMode(mode.value as any)}
+                      className={`p-3 rounded-lg border-2 transition-all text-left ${
+                        calculationMode === mode.value
+                          ? "border-primary-500 bg-primary-50"
+                          : "border-gray-200 hover:border-gray-300 bg-white"
+                      }`}>
+                      <p className={`text-sm font-semibold ${
+                        calculationMode === mode.value ? "text-primary-900" : "text-gray-700"
+                      }`}>
+                        {mode.label}
+                      </p>
+                      <p className={`text-xs ${
+                        calculationMode === mode.value ? "text-primary-600" : "text-gray-500"
+                      }`}>
+                        {mode.desc}
+                      </p>
+                    </button>
+                  ))}
+                </div>
+                <div className="mt-3 p-3 bg-white rounded-lg border border-blue-200">
+                  <p className="text-xs text-gray-700">
+                    <strong>
+                      {calculationMode === "conservative" && "Conservador (75% eficiência):"}
+                      {calculationMode === "balanced" && "Balanceado (80% eficiência):"}
+                      {calculationMode === "optimistic" && "Otimista (85% eficiência):"}
+                    </strong>
+                    {" "}
+                    {calculationMode === "conservative" && "Considera mais perdas (sujeira, sombreamento, temperatura). Sistema maior e mais seguro."}
+                    {calculationMode === "balanced" && "Padrão da indústria. Equilíbrio entre custo e segurança."}
+                    {calculationMode === "optimistic" && "Condições ideais. Sistema menor, mas pode não cobrir 100% em dias ruins."}
+                  </p>
+                </div>
+              </div>
+              
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
