@@ -347,7 +347,7 @@ export default function ClientsPage() {
       {/* Add Client Modal */}
       {showAddModal && (
         <div 
-          className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 overflow-y-auto"
+          className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50 overflow-y-auto"
           onClick={() => setShowAddModal(false)}
         >
           <motion.div
